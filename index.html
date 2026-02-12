@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Adaptive TDEE Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuration ---
+        // REPLACE THE OBJECT BELOW WITH YOUR OWN FIREBASE CONFIG
+       const firebaseConfig = {
+  apiKey: "AIzaSyAO7qvQW6fJ8nKqEIeupDXN4in7vxc3rWI",
+  authDomain: "tdee-20c57.firebaseapp.com",
+  projectId: "tdee-20c57",
+  storageBucket: "tdee-20c57.firebasestorage.app",
+  messagingSenderId: "695242129070",
+  appId: "1:695242129070:web:cf556cef9786fa89a1b73f"
+};
+
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tdee-tracker-v1';
+
+        let db, auth, currentUser;
+        let selectedProfileId = null;
+        let profiles = [];
+        let entries = [];
+        let weightChartInstance = null;
+        let tdeeChartInstance = null;
+        let editingEntryId = null; // Tracks if we are editing a specific entry
+
+        // Constants
+        const KCAL_PER_KG = 7700;
+        const KCAL_PER_LB = 3500;
+
+        // --- Initialization ---
+        async function initApp() {
+            if (!firebaseConfig) {
+                console.error("Firebase config not found.");
+                document.getElementById('loading-screen').innerHTML = `
+                    <div class="p-6 max-w-md mx-auto text-center">
+                        <p class="text-red-500 font-bold mb-2">Firebase Config Missing</p>
+                        <p class="text-sm text-gray-600">Please follow the "Firebase Setup Guide" to add your config.</p>
+                    </div>`;
+                return;
+            }
+
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            // Auth Flow
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+            }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('loading-screen').classList.add('hidden');
+                    document.getElementById('app-content').classList.remove('hidden');
+                    loadProfiles();
+                }
+            });
+        }
+
+        // --- Data Handling ---
+
+        async function loadProfiles() {
+            if (!currentUser) return;
+            
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'tdee_users');
+            const snapshot = await getDocs(q);
+            
+            profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderProfileSelector();
+            
+            // Auto-select first profile if none selected
+            if (!selectedProfileId && profiles.length > 0) {
+                selectProfile(profiles[0].id);
+            } else if (selectedProfileId) {
+                // Check if selected profile still exists
+                const current = profiles.find(p => p.id === selectedProfileId);
+                if (current) {
+                    renderDashboard(current);
+                } else if (profiles.length > 0) {
+                    selectProfile(profiles[0].id);
+                }
+            }
+        }
+
+        async function loadEntries(profileId) {
+            if (!currentUser) return;
+            document.getElementById('loading-indicator').classList.remove('opacity-0');
+
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries');
+            const snapshot = await getDocs(q); 
+            
+            const allEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Filter for current profile and sort by date
+            entries = allEntries
+                .filter(e => e.profileId === profileId)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            calculateStats();
+            document.getElementById('loading-indicator').classList.add('opacity-0');
+        }
+
+        async function saveProfile(id, name, unit, goalWeight, calorieTarget) {
+            const data = {
+                name,
+                unit,
+                goalWeight: parseFloat(goalWeight),
+                calorieTarget: parseFloat(calorieTarget),
+                updatedAt: new Date().toISOString()
+            };
+
+            if (id) {
+                // Update existing
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_users', id), data);
+            } else {
+                // Create new
+                data.createdAt = new Date().toISOString();
+                const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_users'), data);
+                selectedProfileId = docRef.id;
+            }
+            await loadProfiles();
+            if(selectedProfileId) await loadEntries(selectedProfileId);
+        }
+
+        async function saveEntry(date, weight, calories) {
+            if (!currentUser || !selectedProfileId) return;
+
+            const existingEntryAtDate = entries.find(e => e.date === date);
+
+            // Logic: Handle overwrites and updates carefully
+            try {
+                if (editingEntryId) {
+                    // We are in Edit Mode
+                    
+                    // Case 1: Updating the same entry (same date) OR moving to a date with no entry
+                    if (!existingEntryAtDate || existingEntryAtDate.id === editingEntryId) {
+                        const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId);
+                        await updateDoc(entryRef, {
+                            date,
+                            weight: parseFloat(weight),
+                            calories: parseFloat(calories),
+                            updatedAt: new Date().toISOString()
+                        });
+                    } 
+                    // Case 2: Moving entry to a date that ALREADY has a different entry
+                    else {
+                        if(!confirm(`An entry for ${date} already exists. Overwrite it?`)) return;
+                        
+                        // Update the target entry (the one at the new date)
+                        const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
+                        await updateDoc(targetRef, {
+                            weight: parseFloat(weight),
+                            calories: parseFloat(calories),
+                            updatedAt: new Date().toISOString()
+                        });
+                        // Delete the old entry we were editing (since we effectively merged it into the target)
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId));
+                    }
+                } else {
+                    // We are in Add Mode
+                    if (existingEntryAtDate) {
+                        if(!confirm(`An entry for ${date} already exists. Update it?`)) return;
+                        const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
+                        await updateDoc(entryRef, {
+                            weight: parseFloat(weight),
+                            calories: parseFloat(calories),
+                            updatedAt: new Date().toISOString()
+                        });
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries'), {
+                            profileId: selectedProfileId,
+                            date,
+                            weight: parseFloat(weight),
+                            calories: parseFloat(calories),
+                            updatedAt: new Date().toISOString()
+                        });
+                    }
+                }
+                
+                resetForm();
+                await loadEntries(selectedProfileId);
+                
+            } catch (e) {
+                console.error("Error saving:", e);
+                alert("Error saving data. Check console.");
+            }
+        }
+
+        async function deleteEntry(entryId) {
+             if (!currentUser) return;
+             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', entryId));
+             if (editingEntryId === entryId) resetForm();
+             await loadEntries(selectedProfileId);
+        }
+
+        // --- Core TDEE Math (Unchanged logic) ---
+        function calculateStats() {
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            if (!profile) return; 
+
+            if (entries.length === 0) {
+                renderCharts([], profile);
+                renderHistory([], profile);
+                updateGoalPredictions(0, 0, profile);
+                return;
+            }
+
+            const factor = profile.unit === 'lbs' ? KCAL_PER_LB : KCAL_PER_KG;
+            let trendWeight = entries[0].weight;
+            const smoothingFactor = 0.1;
+
+            const processedData = entries.map((entry, index) => {
+                if (index > 0) {
+                    trendWeight = (entry.weight * smoothingFactor) + (trendWeight * (1 - smoothingFactor));
+                } else {
+                    trendWeight = entry.weight;
+                }
+                return { ...entry, trendWeight };
+            });
+
+            const tdeeWindow = 14; 
+            const finalData = processedData.map((entry, index) => {
+                if (index === 0) return { ...entry, calculatedTDEE: null };
+                const prevEntry = processedData[index - 1];
+                const dayDiff = (new Date(entry.date) - new Date(prevEntry.date)) / (1000 * 60 * 60 * 24);
+                if (dayDiff <= 0) return { ...entry, calculatedTDEE: null };
+                const weightDiff = entry.trendWeight - prevEntry.trendWeight;
+                const dailyDeficit = (weightDiff * factor) / dayDiff; 
+                let rawTDEE = entry.calories - dailyDeficit;
+                return { ...entry, rawTDEE };
+            });
+
+            const finalSmoothedData = finalData.map((entry, index) => {
+                if (entry.rawTDEE === null || entry.rawTDEE === undefined) return { ...entry, tdee: null };
+                let sum = 0;
+                let count = 0;
+                for (let i = 0; i < tdeeWindow; i++) {
+                    if (index - i >= 0 && finalData[index-i].rawTDEE) {
+                        sum += finalData[index-i].rawTDEE;
+                        count++;
+                    }
+                }
+                const avgTDEE = count > 0 ? sum / count : null;
+                return { ...entry, tdee: avgTDEE };
+            });
+
+            const lastEntry = finalSmoothedData[finalSmoothedData.length - 1];
+            const currentTDEE = lastEntry.tdee || profile.calorieTarget;
+
+            renderDashboard(profile, lastEntry, currentTDEE);
+            renderCharts(finalSmoothedData, profile);
+            renderHistory(finalSmoothedData, profile);
+            updateGoalPredictions(currentTDEE, lastEntry.trendWeight, profile);
+        }
+
+        // --- UI Rendering ---
+
+        function renderProfileSelector() {
+            const select = document.getElementById('profile-select');
+            select.innerHTML = '';
+            
+            if (profiles.length === 0) {
+                 const opt = document.createElement('option');
+                 opt.text = "Create a Profile ->";
+                 select.appendChild(opt);
+                 return;
+            }
+
+            profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.text = p.name;
+                select.appendChild(opt);
+            });
+            if (selectedProfileId) select.value = selectedProfileId;
+        }
+
+        function renderDashboard(profile, lastEntry, currentTDEE) {
+            document.getElementById('display-tdee').textContent = Math.round(currentTDEE);
+            document.getElementById('display-weight').textContent = lastEntry ? lastEntry.weight.toFixed(1) + ' ' + profile.unit : '--';
+            document.getElementById('display-calories').textContent = lastEntry ? lastEntry.calories : '--';
+        }
+
+        function updateGoalPredictions(currentTDEE, currentWeight, profile) {
+            const targetCals = parseFloat(document.getElementById('setting-calories').value) || profile.calorieTarget;
+            const goalWeight = parseFloat(document.getElementById('setting-goal').value) || profile.goalWeight;
+            
+            const deficit = currentTDEE - targetCals;
+            const weightDiff = currentWeight - goalWeight; 
+            const factor = profile.unit === 'lbs' ? KCAL_PER_LB : KCAL_PER_KG;
+            
+            const elStatus = document.getElementById('goal-status');
+            const elDays = document.getElementById('goal-days');
+            const elDate = document.getElementById('goal-date');
+            const elWeekly = document.getElementById('goal-weekly');
+
+            const weeklyChange = (deficit * 7) / factor;
+            const direction = weeklyChange > 0 ? "Lose" : "Gain";
+            elWeekly.textContent = `${direction} ${Math.abs(weeklyChange).toFixed(2)} ${profile.unit} / week`;
+            elWeekly.className = `font-medium ${weeklyChange > 0 ? 'text-green-600' : 'text-amber-600'}`;
+
+            if ((weightDiff > 0 && deficit <= 0) || (weightDiff < 0 && deficit >= 0)) {
+                 elStatus.textContent = "Current target won't reach goal weight.";
+                 elDays.textContent = "∞";
+                 elDate.textContent = "--";
+                 return;
+            }
+
+            const totalDeficitNeeded = Math.abs(weightDiff) * factor;
+            const days = Math.abs(totalDeficitNeeded / deficit);
+            
+            if (!isFinite(days)) {
+                elDays.textContent = "--"; elDate.textContent = "--";
+            } else {
+                elDays.textContent = Math.ceil(days) + " Days";
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                elDate.textContent = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                elStatus.textContent = "On Track";
+            }
+        }
+
+        function renderCharts(data, profile) {
+            const ctxWeight = document.getElementById('chart-weight').getContext('2d');
+            const ctxTdee = document.getElementById('chart-tdee').getContext('2d');
+
+            const labels = data.map(d => {
+                const date = new Date(d.date);
+                return `${date.getMonth()+1}/${date.getDate()}`;
+            });
+            const weights = data.map(d => d.weight);
+            const trends = data.map(d => d.trendWeight);
+            const tdees = data.map(d => d.tdee);
+
+            // Weight Chart
+            if (weightChartInstance) weightChartInstance.destroy();
+            weightChartInstance = new Chart(ctxWeight, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Daily',
+                            data: weights,
+                            borderColor: '#cbd5e1',
+                            borderWidth: 1,
+                            pointRadius: 2,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Trend',
+                            data: trends,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { title: { display: true, text: profile ? profile.unit : '' } } },
+                    plugins: { legend: { display: true, labels: { boxWidth: 10 } } }
+                }
+            });
+
+            // TDEE Chart
+            if (tdeeChartInstance) tdeeChartInstance.destroy();
+            tdeeChartInstance = new Chart(ctxTdee, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'TDEE',
+                        data: tdees,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                        borderWidth: 2,
+                        pointRadius: 1,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: false } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderHistory(data, profile) {
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            
+            [...data].reverse().forEach(entry => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-gray-100 hover:bg-gray-50 transition-colors";
+                
+                // Highlight row if being edited
+                if (editingEntryId === entry.id) {
+                    tr.className = "bg-amber-50 border-amber-200 border-b";
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${entry.date.slice(5)}</td>
+                    <td class="py-3 px-3 text-sm font-medium whitespace-nowrap">${entry.weight}</td>
+                    <td class="py-3 px-3 text-sm text-gray-400 whitespace-nowrap">${entry.trendWeight.toFixed(1)}</td>
+                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${entry.calories}</td>
+                    <td class="py-3 px-3 text-sm font-semibold text-emerald-600 whitespace-nowrap">${entry.tdee ? Math.round(entry.tdee) : '-'}</td>
+                    <td class="py-3 px-3 text-right whitespace-nowrap">
+                        <button onclick="window.handleEditEntry('${entry.id}', '${entry.date}', '${entry.weight}', '${entry.calories}')" class="text-blue-400 hover:text-blue-600 p-2 mr-1">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button onclick="window.deleteEntryWrapper('${entry.id}')" class="text-red-300 hover:text-red-500 p-2">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- User Actions ---
+
+        window.selectProfile = async (id) => {
+            if (!id) return;
+            selectedProfileId = id;
+            document.getElementById('profile-select').value = id;
+            
+            const profile = profiles.find(p => p.id === id);
+            if (profile) {
+                document.getElementById('setting-goal').value = profile.goalWeight;
+                document.getElementById('setting-calories').value = profile.calorieTarget;
+                document.getElementById('unit-label').textContent = profile.unit;
+                await loadEntries(id);
+            }
+        };
+
+        window.openProfileModal = (mode) => {
+            const modal = document.getElementById('modal-profile');
+            const title = document.getElementById('modal-title');
+            const btn = document.getElementById('modal-submit-btn');
+            
+            document.getElementById('profile-id-hidden').value = mode === 'edit' ? selectedProfileId : '';
+            
+            if (mode === 'edit') {
+                const profile = profiles.find(p => p.id === selectedProfileId);
+                if (!profile) return alert("No profile selected");
+                
+                title.textContent = "Edit Profile";
+                btn.textContent = "Save Changes";
+                document.getElementById('new-name').value = profile.name;
+                document.getElementById('new-unit').value = profile.unit;
+                document.getElementById('new-goal').value = profile.goalWeight;
+                document.getElementById('new-cals').value = profile.calorieTarget;
+            } else {
+                title.textContent = "New Profile";
+                btn.textContent = "Create Profile";
+                document.getElementById('new-name').value = "";
+                document.getElementById('new-goal').value = "";
+                document.getElementById('new-cals').value = "2000";
+            }
+            
+            modal.classList.remove('hidden');
+        };
+
+        window.handleSaveProfile = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('profile-id-hidden').value;
+            const name = document.getElementById('new-name').value;
+            const unit = document.getElementById('new-unit').value;
+            const goal = document.getElementById('new-goal').value;
+            const cals = document.getElementById('new-cals').value;
+            
+            if(name) {
+                await saveProfile(id, name, unit, goal, cals);
+                document.getElementById('modal-profile').classList.add('hidden');
+            }
+        };
+
+        window.handleAddEntry = async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('entry-date').value;
+            const weight = document.getElementById('entry-weight').value;
+            const cals = document.getElementById('entry-cals').value;
+            
+            if(date && weight && cals) {
+                await saveEntry(date, weight, cals);
+            }
+        };
+
+        window.handleEditEntry = (id, date, weight, cals) => {
+            editingEntryId = id;
+            
+            // Populate form
+            document.getElementById('entry-date').value = date;
+            document.getElementById('entry-weight').value = weight;
+            document.getElementById('entry-cals').value = cals;
+            
+            // Change UI state
+            const btn = document.getElementById('btn-add-entry');
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Update Entry';
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-100');
+            btn.classList.add('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-100');
+            
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Refresh table to show highlight
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            renderHistory(entries, profile);
+        };
+        
+        window.resetForm = () => {
+            editingEntryId = null;
+            document.getElementById('entry-weight').value = '';
+            document.getElementById('entry-cals').value = '';
+            // Don't reset date, usually user enters sequential days
+            
+            // Reset UI
+            const btn = document.getElementById('btn-add-entry');
+            btn.innerHTML = '<i class="fas fa-plus mr-1"></i> Add Entry';
+            btn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-100');
+            btn.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-100');
+            
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+            
+            // Refresh table
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            renderHistory(entries, profile);
+        };
+
+        window.deleteEntryWrapper = async (id) => {
+            if(confirm('Delete this entry?')) {
+                await deleteEntry(id);
+            }
+        };
+
+        window.closeModal = () => {
+             document.getElementById('modal-profile').classList.add('hidden');
+        };
+
+        // Real-time calculation for Goal Predictor
+        const updateSettings = async () => {
+             if(!selectedProfileId || entries.length === 0) return;
+             // Temporarily update internal profile state for calculation without DB write
+             calculateStats(); 
+        }
+        
+        document.getElementById('setting-goal').addEventListener('input', updateSettings);
+        document.getElementById('setting-calories').addEventListener('input', updateSettings);
+
+        // --- Start ---
+        document.getElementById('entry-date').valueAsDate = new Date();
+        initApp();
+
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <i class="fas fa-circle-notch fa-spin text-4xl text-blue-500 mb-4"></i>
+            <p class="text-gray-500">Connecting to TDEE Cloud...</p>
+        </div>
+    </div>
+
+    <!-- App Content -->
+    <div id="app-content" class="hidden container mx-auto px-3 py-4 md:px-4 md:py-6 max-w-6xl">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex items-center gap-3 self-start md:self-center">
+                <div class="bg-blue-600 text-white p-3 rounded-xl shadow-lg shadow-blue-200">
+                    <i class="fas fa-fire-alt text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold text-slate-900 leading-tight">Adaptive TDEE</h1>
+                    <p class="text-xs md:text-sm text-slate-500">Calorie & Weight Sync</p>
+                </div>
+            </div>
+
+            <!-- Profile Controls -->
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <div class="flex-grow flex items-center bg-white p-1 rounded-lg shadow-sm border border-slate-200">
+                    <span class="text-slate-400 pl-2 pr-1"><i class="fas fa-user"></i></span>
+                    <select id="profile-select" onchange="selectProfile(this.value)" class="bg-transparent text-slate-700 font-medium py-2 px-1 focus:outline-none cursor-pointer w-full text-base">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+                
+                <!-- Edit Profile Button -->
+                <button onclick="openProfileModal('edit')" class="bg-white text-slate-600 hover:text-blue-600 p-3 rounded-lg shadow-sm border border-slate-200 transition-colors" title="Edit Profile Settings">
+                    <i class="fas fa-cog"></i>
+                </button>
+                
+                <!-- New Profile Button -->
+                <button onclick="openProfileModal('new')" class="bg-blue-600 text-white hover:bg-blue-700 p-3 rounded-lg shadow-lg shadow-blue-100 transition-colors" title="Create New Profile">
+                    <i class="fas fa-plus"></i>
+                </button>
+                
+                <span id="loading-indicator" class="opacity-0 transition-opacity text-blue-500 text-xs absolute top-2 right-2 md:static">
+                    <i class="fas fa-sync fa-spin"></i>
+                </span>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+            <!-- TDEE Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-none min-h-[140px]">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Estimated TDEE</p>
+                <div class="flex items-baseline gap-1">
+                    <h2 id="display-tdee" class="text-4xl font-bold text-slate-800">--</h2>
+                    <span class="text-slate-400 text-sm">kcal</span>
+                </div>
+            </div>
+
+            <!-- Current Stats -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 divide-x divide-slate-100 order-3 md:order-none items-center min-h-[140px]">
+                <div class="text-center px-2">
+                    <p class="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Last Weight</p>
+                    <p id="display-weight" class="text-2xl font-bold text-slate-700">--</p>
+                </div>
+                <div class="text-center px-2">
+                    <p class="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Last Calories</p>
+                    <p id="display-calories" class="text-2xl font-bold text-slate-700">--</p>
+                </div>
+            </div>
+
+            <!-- Entry Form -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 order-2 md:order-none flex flex-col justify-center">
+                <form onsubmit="handleAddEntry(event)" class="space-y-3">
+                    <div class="flex gap-2">
+                        <input type="date" id="entry-date" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" step="0.1" id="entry-weight" placeholder="Weight" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="number" id="entry-cals" placeholder="Calories" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-medium py-3 rounded-lg text-sm transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" id="btn-add-entry" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg text-base transition-colors shadow-blue-100 shadow-lg touch-manipulation">
+                            <i class="fas fa-plus mr-1"></i> Add Entry
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Content Split -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            
+            <!-- Left Column: Charts & History -->
+            <div class="lg:col-span-2 space-y-6 md:space-y-8">
+                <!-- Charts -->
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wide">Weight Trend</h3>
+                    <div class="relative h-56 md:h-64 w-full">
+                        <canvas id="chart-weight"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wide">TDEE Trend</h3>
+                    <div class="relative h-48 w-full">
+                        <canvas id="chart-tdee"></canvas>
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="font-bold text-slate-700 text-sm uppercase tracking-wide">Log History</h3>
+                        <span class="text-xs text-slate-400"><i class="fas fa-arrows-alt-h mr-1"></i> Swipe to view</span>
+                    </div>
+                    <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead class="bg-slate-50 sticky top-0 text-slate-500">
+                                <tr>
+                                    <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Date</th>
+                                    <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Weight</th>
+                                    <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Trend</th>
+                                    <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Cals</th>
+                                    <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Est. TDEE</th>
+                                    <th class="py-2 px-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body">
+                                <!-- JS Populates this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Goals & Settings -->
+            <div class="space-y-6">
+                <!-- Goal Calculator -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="bg-white/10 p-2 rounded-lg">
+                            <i class="fas fa-bullseye text-blue-400"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Goal Predictor</h3>
+                    </div>
+
+                    <div class="space-y-5 mb-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Target Weight (<span id="unit-label">kg</span>)</label>
+                            <input type="number" step="0.1" id="setting-goal" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-base text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Daily Calorie Target</label>
+                            <input type="number" id="setting-calories" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-base text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-700/50">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-slate-400">Rate:</span>
+                            <span id="goal-weekly" class="font-bold text-sm">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-slate-400">Time:</span>
+                            <span id="goal-days" class="font-bold text-blue-300">--</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-700/50">
+                            <span class="text-sm text-slate-400">Goal Date:</span>
+                            <span id="goal-date" class="font-bold text-white">--</span>
+                        </div>
+                        <p id="goal-status" class="text-xs text-center text-slate-500 mt-2">--</p>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-blue-50 p-6 rounded-2xl text-sm text-blue-900 border border-blue-100">
+                    <h4 class="font-bold mb-2 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-blue-500"></i> How it works
+                    </h4>
+                    <p class="opacity-80 leading-relaxed">
+                        This app learns your metabolism. By tracking your weight and calories daily, it smooths out fluctuations and calculates your real TDEE.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Profile Modal (Create & Edit) -->
+    <div id="modal-profile" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100">
+            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Profile</h3>
+            <input type="hidden" id="profile-id-hidden">
+            <form onsubmit="handleSaveProfile(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Name</label>
+                    <input type="text" id="new-name" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit</label>
+                        <select id="new-unit" class="w-full border border-slate-300 bg-white rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            <option value="kg">kg</option>
+                            <option value="lbs">lbs</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Goal Weight</label>
+                        <input type="number" step="0.1" id="new-goal" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Start Calorie Target</label>
+                    <input type="number" id="new-cals" value="2000" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors text-sm">Cancel</button>
+                    <button type="submit" id="modal-submit-btn" class="flex-1 px-4 py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 rounded-lg transition-colors text-sm shadow-lg shadow-blue-100">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
