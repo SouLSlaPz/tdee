@@ -148,58 +148,77 @@
             if(selectedProfileId) await loadEntries(selectedProfileId);
         }
 
-        async function saveEntry(date, weight, calories) {
+        async function saveEntry(date, weightInput, caloriesInput) {
             if (!currentUser || !selectedProfileId) return;
+
+            // Handle inputs: allow empty strings for partial updates
+            const weightVal = weightInput === "" ? null : parseFloat(weightInput);
+            const calsVal = caloriesInput === "" ? null : parseFloat(caloriesInput);
 
             const existingEntryAtDate = entries.find(e => e.date === date);
 
-            // Logic: Handle overwrites and updates carefully
             try {
                 if (editingEntryId) {
-                    // We are in Edit Mode
-                    
-                    // Case 1: Updating the same entry (same date) OR moving to a date with no entry
+                    // --- EDIT MODE ---
+                    // Case 1: Updating the specific entry we clicked 'edit' on
+                    // (Even if we changed the date to a new empty date)
                     if (!existingEntryAtDate || existingEntryAtDate.id === editingEntryId) {
                         const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId);
-                        await updateDoc(entryRef, {
+                        const updatePayload = {
                             date,
-                            weight: parseFloat(weight),
-                            calories: parseFloat(calories),
                             updatedAt: new Date().toISOString()
-                        });
+                        };
+                        // Only overwrite fields if user provided a value
+                        if (weightVal !== null) updatePayload.weight = weightVal;
+                        if (calsVal !== null) updatePayload.calories = calsVal;
+                        
+                        await updateDoc(entryRef, updatePayload);
                     } 
                     // Case 2: Moving entry to a date that ALREADY has a different entry
                     else {
-                        if(!confirm(`An entry for ${date} already exists. Overwrite it?`)) return;
+                        if(!confirm(`An entry for ${date} already exists. Merge with it?`)) return;
                         
-                        // Update the target entry (the one at the new date)
+                        // Merge logic: Update target, delete source
                         const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
-                        await updateDoc(targetRef, {
-                            weight: parseFloat(weight),
-                            calories: parseFloat(calories),
-                            updatedAt: new Date().toISOString()
-                        });
-                        // Delete the old entry we were editing (since we effectively merged it into the target)
+                        const mergePayload = { updatedAt: new Date().toISOString() };
+                        if (weightVal !== null) mergePayload.weight = weightVal;
+                        if (calsVal !== null) mergePayload.calories = calsVal;
+
+                        await updateDoc(targetRef, mergePayload);
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId));
                     }
                 } else {
-                    // We are in Add Mode
+                    // --- ADD MODE (Smart Merge) ---
                     if (existingEntryAtDate) {
-                        if(!confirm(`An entry for ${date} already exists. Update it?`)) return;
+                        // Silent update preference for "Morning/Evening" workflow
+                        // Only confirm if we are overwriting an existing VALUE with a NEW VALUE
+                        let confirmNeeded = false;
+                        if (weightVal !== null && existingEntryAtDate.weight) confirmNeeded = true;
+                        if (calsVal !== null && existingEntryAtDate.calories) confirmNeeded = true;
+                        
+                        // Note: If adding Cals to a record that only has Weight, no confirmation needed.
+                        
+                        if (confirmNeeded && !confirm(`Update existing entry for ${date}?`)) return;
+
                         const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
-                        await updateDoc(entryRef, {
-                            weight: parseFloat(weight),
-                            calories: parseFloat(calories),
-                            updatedAt: new Date().toISOString()
-                        });
+                        const updatePayload = { updatedAt: new Date().toISOString() };
+                        if (weightVal !== null) updatePayload.weight = weightVal;
+                        if (calsVal !== null) updatePayload.calories = calsVal;
+                        
+                        await updateDoc(entryRef, updatePayload);
+
                     } else {
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries'), {
+                        // Create entirely new document
+                        const newDoc = {
                             profileId: selectedProfileId,
                             date,
-                            weight: parseFloat(weight),
-                            calories: parseFloat(calories),
                             updatedAt: new Date().toISOString()
-                        });
+                        };
+                        // Use null if not provided
+                        if (weightVal !== null) newDoc.weight = weightVal;
+                        if (calsVal !== null) newDoc.calories = calsVal;
+
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries'), newDoc);
                     }
                 }
                 
@@ -219,7 +238,7 @@
              await loadEntries(selectedProfileId);
         }
 
-        // --- Core TDEE Math (Unchanged logic) ---
+        // --- Core TDEE Math ---
         function calculateStats() {
             const profile = profiles.find(p => p.id === selectedProfileId);
             if (!profile) return; 
@@ -232,14 +251,22 @@
             }
 
             const factor = profile.unit === 'lbs' ? KCAL_PER_LB : KCAL_PER_KG;
-            let trendWeight = entries[0].weight;
+            
+            // Initialize trend weight with the first available weight
+            let trendWeight = 0;
+            const firstWeightEntry = entries.find(e => e.weight !== undefined && e.weight !== null);
+            if (firstWeightEntry) {
+                trendWeight = firstWeightEntry.weight;
+            }
+
             const smoothingFactor = 0.1;
 
             const processedData = entries.map((entry, index) => {
-                if (index > 0) {
-                    trendWeight = (entry.weight * smoothingFactor) + (trendWeight * (1 - smoothingFactor));
-                } else {
-                    trendWeight = entry.weight;
+                // If entry has no weight, we just hold the previous trendWeight
+                if (entry.weight !== undefined && entry.weight !== null) {
+                     // If it's the very first entry with weight, we initialized trendWeight above.
+                     // But we still need to run the EMA formula for subsequent entries
+                     trendWeight = (entry.weight * smoothingFactor) + (trendWeight * (1 - smoothingFactor));
                 }
                 return { ...entry, trendWeight };
             });
@@ -247,9 +274,18 @@
             const tdeeWindow = 14; 
             const finalData = processedData.map((entry, index) => {
                 if (index === 0) return { ...entry, calculatedTDEE: null };
+                
                 const prevEntry = processedData[index - 1];
                 const dayDiff = (new Date(entry.date) - new Date(prevEntry.date)) / (1000 * 60 * 60 * 24);
-                if (dayDiff <= 0) return { ...entry, calculatedTDEE: null };
+                
+                // REQUIREMENTS FOR TDEE:
+                // 1. Current entry must have calories
+                // 2. Trend weight must be valid (non-zero)
+                // 3. Previous trend weight must be valid
+                if (!entry.calories || trendWeight === 0 || prevEntry.trendWeight === 0 || dayDiff <= 0) {
+                    return { ...entry, rawTDEE: null };
+                }
+
                 const weightDiff = entry.trendWeight - prevEntry.trendWeight;
                 const dailyDeficit = (weightDiff * factor) / dayDiff; 
                 let rawTDEE = entry.calories - dailyDeficit;
@@ -261,6 +297,7 @@
                 let sum = 0;
                 let count = 0;
                 for (let i = 0; i < tdeeWindow; i++) {
+                    // Look back N days
                     if (index - i >= 0 && finalData[index-i].rawTDEE) {
                         sum += finalData[index-i].rawTDEE;
                         count++;
@@ -270,13 +307,23 @@
                 return { ...entry, tdee: avgTDEE };
             });
 
-            const lastEntry = finalSmoothedData[finalSmoothedData.length - 1];
-            const currentTDEE = lastEntry.tdee || profile.calorieTarget;
+            // Find last valid TDEE entry for dashboard
+            let lastValidTDEE = null;
+            let lastValidWeight = null;
+            
+            for(let i = finalSmoothedData.length - 1; i >= 0; i--) {
+                if (finalSmoothedData[i].tdee !== null && lastValidTDEE === null) lastValidTDEE = finalSmoothedData[i].tdee;
+                if (finalSmoothedData[i].weight && lastValidWeight === null) lastValidWeight = finalSmoothedData[i].weight;
+            }
+            
+            const currentTDEE = lastValidTDEE || profile.calorieTarget;
+            const currentWeight = lastValidWeight || 0;
+            const lastEntry = finalSmoothedData[finalSmoothedData.length - 1]; // For display calories
 
-            renderDashboard(profile, lastEntry, currentTDEE);
+            renderDashboard(profile, lastEntry, currentWeight, currentTDEE);
             renderCharts(finalSmoothedData, profile);
             renderHistory(finalSmoothedData, profile);
-            updateGoalPredictions(currentTDEE, lastEntry.trendWeight, profile);
+            updateGoalPredictions(currentTDEE, currentWeight, profile);
         }
 
         // --- UI Rendering ---
@@ -301,16 +348,22 @@
             if (selectedProfileId) select.value = selectedProfileId;
         }
 
-        function renderDashboard(profile, lastEntry, currentTDEE) {
+        function renderDashboard(profile, lastEntry, currentWeight, currentTDEE) {
             document.getElementById('display-tdee').textContent = Math.round(currentTDEE);
-            document.getElementById('display-weight').textContent = lastEntry ? lastEntry.weight.toFixed(1) + ' ' + profile.unit : '--';
-            document.getElementById('display-calories').textContent = lastEntry ? lastEntry.calories : '--';
+            document.getElementById('display-weight').textContent = currentWeight ? currentWeight.toFixed(1) + ' ' + profile.unit : '--';
+            document.getElementById('display-calories').textContent = (lastEntry && lastEntry.calories) ? lastEntry.calories : '--';
         }
 
         function updateGoalPredictions(currentTDEE, currentWeight, profile) {
             const targetCals = parseFloat(document.getElementById('setting-calories').value) || profile.calorieTarget;
             const goalWeight = parseFloat(document.getElementById('setting-goal').value) || profile.goalWeight;
             
+            // If we don't have a weight yet, can't predict
+            if (!currentWeight || currentWeight === 0) {
+                 document.getElementById('goal-status').textContent = "Need weight data";
+                 return;
+            }
+
             const deficit = currentTDEE - targetCals;
             const weightDiff = currentWeight - goalWeight; 
             const factor = profile.unit === 'lbs' ? KCAL_PER_LB : KCAL_PER_KG;
@@ -354,8 +407,9 @@
                 const date = new Date(d.date);
                 return `${date.getMonth()+1}/${date.getDate()}`;
             });
-            const weights = data.map(d => d.weight);
-            const trends = data.map(d => d.trendWeight);
+            // Handle missing data for charts (Chart.js handles nulls by breaking the line, which is good)
+            const weights = data.map(d => d.weight || null);
+            const trends = data.map(d => d.trendWeight > 0 ? d.trendWeight : null);
             const tdees = data.map(d => d.tdee);
 
             // Weight Chart
@@ -370,7 +424,8 @@
                             data: weights,
                             borderColor: '#cbd5e1',
                             borderWidth: 1,
-                            pointRadius: 2,
+                            pointRadius: 3,
+                            spanGaps: true, // Connect lines over missing days
                             tension: 0.1
                         },
                         {
@@ -381,7 +436,8 @@
                             borderWidth: 3,
                             pointRadius: 0,
                             fill: true,
-                            tension: 0.4
+                            tension: 0.4,
+                            spanGaps: true
                         }
                     ]
                 },
@@ -408,7 +464,8 @@
                         borderWidth: 2,
                         pointRadius: 1,
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        spanGaps: true
                     }]
                 },
                 options: {
@@ -428,19 +485,23 @@
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-gray-100 hover:bg-gray-50 transition-colors";
                 
-                // Highlight row if being edited
                 if (editingEntryId === entry.id) {
                     tr.className = "bg-amber-50 border-amber-200 border-b";
                 }
 
+                const displayWeight = entry.weight ? entry.weight : '<span class="text-gray-300">-</span>';
+                const displayTrend = entry.trendWeight > 0 ? entry.trendWeight.toFixed(1) : '<span class="text-gray-300">-</span>';
+                const displayCals = entry.calories ? entry.calories : '<span class="text-gray-300">-</span>';
+                const displayTDEE = entry.tdee ? Math.round(entry.tdee) : '<span class="text-gray-300">-</span>';
+
                 tr.innerHTML = `
                     <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${entry.date.slice(5)}</td>
-                    <td class="py-3 px-3 text-sm font-medium whitespace-nowrap">${entry.weight}</td>
-                    <td class="py-3 px-3 text-sm text-gray-400 whitespace-nowrap">${entry.trendWeight.toFixed(1)}</td>
-                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${entry.calories}</td>
-                    <td class="py-3 px-3 text-sm font-semibold text-emerald-600 whitespace-nowrap">${entry.tdee ? Math.round(entry.tdee) : '-'}</td>
+                    <td class="py-3 px-3 text-sm font-medium whitespace-nowrap">${displayWeight}</td>
+                    <td class="py-3 px-3 text-sm text-gray-400 whitespace-nowrap">${displayTrend}</td>
+                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${displayCals}</td>
+                    <td class="py-3 px-3 text-sm font-semibold text-emerald-600 whitespace-nowrap">${displayTDEE}</td>
                     <td class="py-3 px-3 text-right whitespace-nowrap">
-                        <button onclick="window.handleEditEntry('${entry.id}', '${entry.date}', '${entry.weight}', '${entry.calories}')" class="text-blue-400 hover:text-blue-600 p-2 mr-1">
+                        <button onclick="window.handleEditEntry('${entry.id}', '${entry.date}', '${entry.weight || ''}', '${entry.calories || ''}')" class="text-blue-400 hover:text-blue-600 p-2 mr-1">
                             <i class="fas fa-pencil-alt"></i>
                         </button>
                         <button onclick="window.deleteEntryWrapper('${entry.id}')" class="text-red-300 hover:text-red-500 p-2">
@@ -516,8 +577,11 @@
             const weight = document.getElementById('entry-weight').value;
             const cals = document.getElementById('entry-cals').value;
             
-            if(date && weight && cals) {
+            // Allow partial: must have date, plus at least one other field
+            if(date && (weight || cals)) {
                 await saveEntry(date, weight, cals);
+            } else {
+                alert("Please enter a Date and at least one value (Weight or Calories).");
             }
         };
 
@@ -537,10 +601,8 @@
             
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
             
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
-            // Refresh table to show highlight
             const profile = profiles.find(p => p.id === selectedProfileId);
             renderHistory(entries, profile);
         };
@@ -549,17 +611,16 @@
             editingEntryId = null;
             document.getElementById('entry-weight').value = '';
             document.getElementById('entry-cals').value = '';
-            // Don't reset date, usually user enters sequential days
+            // Keep date as is for convenience
             
             // Reset UI
             const btn = document.getElementById('btn-add-entry');
-            btn.innerHTML = '<i class="fas fa-plus mr-1"></i> Add Entry';
+            btn.innerHTML = '<i class="fas fa-plus mr-1"></i> Add / Update';
             btn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-100');
             btn.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-100');
             
             document.getElementById('btn-cancel-edit').classList.add('hidden');
             
-            // Refresh table
             const profile = profiles.find(p => p.id === selectedProfileId);
             renderHistory(entries, profile);
         };
@@ -577,7 +638,6 @@
         // Real-time calculation for Goal Predictor
         const updateSettings = async () => {
              if(!selectedProfileId || entries.length === 0) return;
-             // Temporarily update internal profile state for calculation without DB write
              calculateStats(); 
         }
         
@@ -624,12 +684,10 @@
                     </select>
                 </div>
                 
-                <!-- Edit Profile Button -->
                 <button onclick="openProfileModal('edit')" class="bg-white text-slate-600 hover:text-blue-600 p-3 rounded-lg shadow-sm border border-slate-200 transition-colors" title="Edit Profile Settings">
                     <i class="fas fa-cog"></i>
                 </button>
                 
-                <!-- New Profile Button -->
                 <button onclick="openProfileModal('new')" class="bg-blue-600 text-white hover:bg-blue-700 p-3 rounded-lg shadow-lg shadow-blue-100 transition-colors" title="Create New Profile">
                     <i class="fas fa-plus"></i>
                 </button>
@@ -671,15 +729,15 @@
                         <input type="date" id="entry-date" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div class="flex gap-2">
-                        <input type="number" step="0.1" id="entry-weight" placeholder="Weight" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <input type="number" id="entry-cals" placeholder="Calories" required class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="number" step="0.1" id="entry-weight" placeholder="Weight" class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="number" id="entry-cals" placeholder="Calories" class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div class="flex gap-2">
                         <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-medium py-3 rounded-lg text-sm transition-colors">
                             Cancel
                         </button>
                         <button type="submit" id="btn-add-entry" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg text-base transition-colors shadow-blue-100 shadow-lg touch-manipulation">
-                            <i class="fas fa-plus mr-1"></i> Add Entry
+                            <i class="fas fa-plus mr-1"></i> Add / Update
                         </button>
                     </div>
                 </form>
