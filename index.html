@@ -14,6 +14,164 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- CryptoJS for Encryption -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <!-- Custom Theme Styles -->
+    <style>
+        /* Base Variables */
+        :root {
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --bg-soft: #f1f5f9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-header: #1e293b;
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --border-color: #e2e8f0;
+        }
+
+        /* --- LIGHT / PASTEL THEMES --- */
+        [data-theme="light"] {
+            --bg-page: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --bg-soft: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-header: #0f172a;
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --border-color: #cbd5e1;
+        }
+        [data-theme="sky"] {
+            --bg-page: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            --bg-card: #ffffff;
+            --bg-input: #f0f9ff;
+            --bg-soft: #e0f2fe;
+            --text-main: #0c4a6e;
+            --text-muted: #0369a1;
+            --text-header: #0c4a6e;
+            --color-primary: #0284c7;
+            --color-primary-hover: #0369a1;
+            --border-color: #bae6fd;
+        }
+        [data-theme="lavender"] {
+            --bg-page: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            --bg-card: #ffffff;
+            --bg-input: #faf5ff;
+            --bg-soft: #f3e8ff;
+            --text-main: #581c87;
+            --text-muted: #7e22ce;
+            --text-header: #581c87;
+            --color-primary: #9333ea;
+            --color-primary-hover: #7e22ce;
+            --border-color: #d8b4fe;
+        }
+        [data-theme="mint"] {
+            --bg-page: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            --bg-card: #ffffff;
+            --bg-input: #f0fdf4;
+            --bg-soft: #dcfce7;
+            --text-main: #14532d;
+            --text-muted: #15803d;
+            --text-header: #14532d;
+            --color-primary: #16a34a;
+            --color-primary-hover: #15803d;
+            --border-color: #86efac;
+        }
+
+        /* --- BOLD / SATURATED THEMES --- */
+        [data-theme="ocean"] {
+            --bg-page: #2563eb;
+            --bg-card: #ffffff;
+            --bg-input: #f8fafc;
+            --bg-soft: #eff6ff;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-header: #ffffff;
+            --color-primary: #2563eb;
+            --color-primary-hover: #1d4ed8;
+            --border-color: #cbd5e1;
+        }
+        [data-theme="midnight"] {
+            --bg-page: #020617;
+            --bg-card: #1e293b;
+            --bg-input: #0f172a;
+            --bg-soft: #334155;
+            --text-main: #ffffff;
+            --text-muted: #cbd5e1;
+            --text-header: #ffffff;
+            --color-primary: #38bdf8;
+            --color-primary-hover: #0ea5e9;
+            --border-color: #475569;
+        }
+        [data-theme="sunset"] {
+            --bg-page: #c2410c;
+            --bg-card: #fff7ed;
+            --bg-input: #ffffff;
+            --bg-soft: #ffedd5;
+            --text-main: #431407;
+            --text-muted: #9a3412;
+            --text-header: #ffffff;
+            --color-primary: #ea580c;
+            --color-primary-hover: #c2410c;
+            --border-color: #fed7aa;
+        }
+        [data-theme="royal"] {
+            --bg-page: #6b21a8;
+            --bg-card: #faf5ff;
+            --bg-input: #ffffff;
+            --bg-soft: #f3e8ff;
+            --text-main: #3b0764;
+            --text-muted: #6b21a8;
+            --text-header: #ffffff;
+            --color-primary: #9333ea;
+            --color-primary-hover: #7e22ce;
+            --border-color: #d8b4fe;
+        }
+        [data-theme="forest"] {
+            --bg-page: #15803d;
+            --bg-card: #f0fdf4;
+            --bg-input: #ffffff;
+            --bg-soft: #dcfce7;
+            --text-main: #052e16;
+            --text-muted: #166534;
+            --text-header: #ffffff;
+            --color-primary: #16a34a;
+            --color-primary-hover: #15803d;
+            --border-color: #86efac;
+        }
+        [data-theme="rose"] {
+            --bg-page: #be123c;
+            --bg-card: #fff1f2;
+            --bg-input: #ffffff;
+            --bg-soft: #ffe4e6;
+            --text-main: #881337;
+            --text-muted: #9f1239;
+            --text-header: #ffffff;
+            --color-primary: #e11d48;
+            --color-primary-hover: #be123c;
+            --border-color: #fda4af;
+        }
+
+        body { background: var(--bg-page); color: var(--text-main); }
+        .theme-card { background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); }
+        .theme-input { background-color: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); }
+        .theme-input:focus { border-color: var(--color-primary); outline: 2px solid var(--color-primary); outline-offset: -1px; }
+        .theme-soft { background-color: var(--bg-soft); color: var(--text-main); }
+        .text-theme-main { color: var(--text-main); }
+        .text-theme-muted { color: var(--text-muted); }
+        .text-theme-primary { color: var(--color-primary); }
+        .text-theme-header { color: var(--text-header); }
+        .bg-theme-primary { background-color: var(--color-primary); }
+        .bg-theme-primary:hover { background-color: var(--color-primary-hover); }
+        .border-theme-primary { border-color: var(--color-primary); }
+        .modal-backdrop { background-color: rgba(0,0,0,0.7); }
+    </style>
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -21,8 +179,8 @@
         import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Configuration ---
-        // REPLACE THE OBJECT BELOW WITH YOUR OWN FIREBASE CONFIG
-       const firebaseConfig = {
+        // PASTE YOUR FIREBASE CONFIG HERE replacing the line below
+        const firebaseConfig = {
   apiKey: "AIzaSyAO7qvQW6fJ8nKqEIeupDXN4in7vxc3rWI",
   authDomain: "tdee-20c57.firebaseapp.com",
   projectId: "tdee-20c57",
@@ -40,30 +198,30 @@
         let entries = [];
         let weightChartInstance = null;
         let tdeeChartInstance = null;
-        let editingEntryId = null; // Tracks if we are editing a specific entry
+        let editingEntryId = null;
+        let sessionPIN = null; 
 
-        // Constants
+        const ADMIN_NAME = "Mike";
         const KCAL_PER_KG = 7700;
         const KCAL_PER_LB = 3500;
 
         // --- Initialization ---
         async function initApp() {
             if (!firebaseConfig) {
-                console.error("Firebase config not found.");
                 document.getElementById('loading-screen').innerHTML = `
-                    <div class="p-6 max-w-md mx-auto text-center">
+                    <div class="p-6 max-w-md mx-auto text-center bg-white rounded-xl shadow-lg text-slate-800">
+                        <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
                         <p class="text-red-500 font-bold mb-2">Firebase Config Missing</p>
-                        <p class="text-sm text-gray-600">Please follow the "Firebase Setup Guide" to add your config.</p>
+                        <p class="text-sm text-gray-600 mb-4">You need to paste your firebaseConfig object into the code.</p>
                     </div>`;
                 return;
             }
 
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            // Auth Flow
             try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -71,14 +229,28 @@
                 }
             } catch (error) {
                 console.error("Auth error:", error);
+                document.getElementById('loading-screen').innerHTML = `
+                    <div class="p-6 max-w-md mx-auto text-center bg-white rounded-xl shadow-lg text-slate-800">
+                        <p class="text-red-600 font-bold mb-2">Authentication Failed</p>
+                        <p class="text-sm text-gray-700">${error.message}</p>
+                    </div>`;
             }
 
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     currentUser = user;
-                    document.getElementById('loading-screen').classList.add('hidden');
-                    document.getElementById('app-content').classList.remove('hidden');
-                    loadProfiles();
+                    loadProfiles()
+                        .then(() => {
+                            document.getElementById('loading-screen').classList.add('hidden');
+                            showLoginScreen();
+                        })
+                        .catch(err => {
+                            document.getElementById('loading-screen').innerHTML = `
+                                <div class="p-6 max-w-md mx-auto text-center bg-white rounded-xl shadow-lg text-slate-800">
+                                    <p class="text-amber-700 font-bold mb-2">Database Access Denied</p>
+                                    <p class="text-sm text-gray-700">${err.message}</p>
+                                </div>`;
+                        });
                 }
             });
         }
@@ -87,25 +259,9 @@
 
         async function loadProfiles() {
             if (!currentUser) return;
-            
             const q = collection(db, 'artifacts', appId, 'public', 'data', 'tdee_users');
             const snapshot = await getDocs(q);
-            
             profiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderProfileSelector();
-            
-            // Auto-select first profile if none selected
-            if (!selectedProfileId && profiles.length > 0) {
-                selectProfile(profiles[0].id);
-            } else if (selectedProfileId) {
-                // Check if selected profile still exists
-                const current = profiles.find(p => p.id === selectedProfileId);
-                if (current) {
-                    renderDashboard(current);
-                } else if (profiles.length > 0) {
-                    selectProfile(profiles[0].id);
-                }
-            }
         }
 
         async function loadEntries(profileId) {
@@ -116,118 +272,121 @@
             const snapshot = await getDocs(q); 
             
             const allEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Filter for current profile and sort by date
-            entries = allEntries
-                .filter(e => e.profileId === profileId)
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            let rawEntries = allEntries.filter(e => e.profileId === profileId);
 
+            const profile = profiles.find(p => p.id === profileId);
+            
+            if (profile.isSecured) {
+                if (!sessionPIN) {
+                    alert("Security Error: No PIN in session.");
+                    return;
+                }
+                
+                entries = rawEntries.map(e => {
+                    try {
+                        let w = e.weight;
+                        let c = e.calories;
+                        if (typeof e.weight === 'string') {
+                            const bytes = CryptoJS.AES.decrypt(e.weight, sessionPIN);
+                            const str = bytes.toString(CryptoJS.enc.Utf8);
+                            w = str ? parseFloat(str) : null;
+                        }
+                        if (typeof e.calories === 'string') {
+                            const bytes = CryptoJS.AES.decrypt(e.calories, sessionPIN);
+                            const str = bytes.toString(CryptoJS.enc.Utf8);
+                            c = str ? parseFloat(str) : null;
+                        }
+                        return { ...e, weight: w, calories: c };
+                    } catch (err) {
+                        return { ...e, weight: null, calories: null };
+                    }
+                });
+            } else {
+                entries = rawEntries;
+            }
+
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
             calculateStats();
             document.getElementById('loading-indicator').classList.add('opacity-0');
         }
 
-        async function saveProfile(id, name, unit, goalWeight, calorieTarget) {
+        async function saveProfile(id, name, unit, goalWeight, calorieTarget, theme) {
             const data = {
                 name,
                 unit,
                 goalWeight: parseFloat(goalWeight),
                 calorieTarget: parseFloat(calorieTarget),
+                theme: theme || 'light',
                 updatedAt: new Date().toISOString()
             };
 
             if (id) {
-                // Update existing
                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_users', id), data);
+                const pIndex = profiles.findIndex(p => p.id === id);
+                if (pIndex > -1) profiles[pIndex] = { ...profiles[pIndex], ...data };
             } else {
-                // Create new
                 data.createdAt = new Date().toISOString();
+                data.isSecured = false; 
                 const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_users'), data);
+                profiles.push({ id: docRef.id, ...data });
                 selectedProfileId = docRef.id;
+                applyTheme(data.theme);
+                enterApp();
             }
-            await loadProfiles();
-            if(selectedProfileId) await loadEntries(selectedProfileId);
+            
+            if(selectedProfileId && selectedProfileId === id) {
+                 applyTheme(theme);
+                 calculateStats();
+            }
         }
 
         async function saveEntry(date, weightInput, caloriesInput) {
             if (!currentUser || !selectedProfileId) return;
 
-            // Handle inputs: allow empty strings for partial updates
-            const weightVal = weightInput === "" ? null : parseFloat(weightInput);
-            const calsVal = caloriesInput === "" ? null : parseFloat(caloriesInput);
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            const isSecured = profile.isSecured;
 
+            const processValue = (val) => {
+                if (val === "" || val === null || val === undefined) return null;
+                const numVal = parseFloat(val);
+                if (isSecured) {
+                    return CryptoJS.AES.encrypt(numVal.toString(), sessionPIN).toString();
+                }
+                return numVal;
+            };
+
+            const weightPayload = processValue(weightInput);
+            const calsPayload = processValue(caloriesInput);
             const existingEntryAtDate = entries.find(e => e.date === date);
 
             try {
-                if (editingEntryId) {
-                    // --- EDIT MODE ---
-                    // Case 1: Updating the specific entry we clicked 'edit' on
-                    // (Even if we changed the date to a new empty date)
-                    if (!existingEntryAtDate || existingEntryAtDate.id === editingEntryId) {
-                        const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId);
-                        const updatePayload = {
-                            date,
-                            updatedAt: new Date().toISOString()
-                        };
-                        // Only overwrite fields if user provided a value
-                        if (weightVal !== null) updatePayload.weight = weightVal;
-                        if (calsVal !== null) updatePayload.calories = calsVal;
-                        
-                        await updateDoc(entryRef, updatePayload);
-                    } 
-                    // Case 2: Moving entry to a date that ALREADY has a different entry
-                    else {
-                        if(!confirm(`An entry for ${date} already exists. Merge with it?`)) return;
-                        
-                        // Merge logic: Update target, delete source
-                        const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
-                        const mergePayload = { updatedAt: new Date().toISOString() };
-                        if (weightVal !== null) mergePayload.weight = weightVal;
-                        if (calsVal !== null) mergePayload.calories = calsVal;
+                const docData = { updatedAt: new Date().toISOString() };
+                if (weightPayload !== null) docData.weight = weightPayload;
+                if (calsPayload !== null) docData.calories = calsPayload;
 
-                        await updateDoc(targetRef, mergePayload);
+                if (editingEntryId) {
+                    if (!existingEntryAtDate || existingEntryAtDate.id === editingEntryId) {
+                        docData.date = date;
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId), docData);
+                    } else {
+                        if(!confirm(`Entry exists for ${date}. Merge?`)) return;
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id), docData);
                         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', editingEntryId));
                     }
                 } else {
-                    // --- ADD MODE (Smart Merge) ---
                     if (existingEntryAtDate) {
-                        // Silent update preference for "Morning/Evening" workflow
-                        // Only confirm if we are overwriting an existing VALUE with a NEW VALUE
-                        let confirmNeeded = false;
-                        if (weightVal !== null && existingEntryAtDate.weight) confirmNeeded = true;
-                        if (calsVal !== null && existingEntryAtDate.calories) confirmNeeded = true;
-                        
-                        // Note: If adding Cals to a record that only has Weight, no confirmation needed.
-                        
-                        if (confirmNeeded && !confirm(`Update existing entry for ${date}?`)) return;
-
-                        const entryRef = doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id);
-                        const updatePayload = { updatedAt: new Date().toISOString() };
-                        if (weightVal !== null) updatePayload.weight = weightVal;
-                        if (calsVal !== null) updatePayload.calories = calsVal;
-                        
-                        await updateDoc(entryRef, updatePayload);
-
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', existingEntryAtDate.id), docData);
                     } else {
-                        // Create entirely new document
-                        const newDoc = {
-                            profileId: selectedProfileId,
-                            date,
-                            updatedAt: new Date().toISOString()
-                        };
-                        // Use null if not provided
-                        if (weightVal !== null) newDoc.weight = weightVal;
-                        if (calsVal !== null) newDoc.calories = calsVal;
-
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries'), newDoc);
+                        docData.profileId = selectedProfileId;
+                        docData.date = date;
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries'), docData);
                     }
                 }
-                
                 resetForm();
                 await loadEntries(selectedProfileId);
-                
             } catch (e) {
                 console.error("Error saving:", e);
-                alert("Error saving data. Check console.");
+                alert("Error saving data.");
             }
         }
 
@@ -238,34 +397,102 @@
              await loadEntries(selectedProfileId);
         }
 
-        // --- Core TDEE Math ---
+        async function deleteProfile(profileId, isSelfDelete) {
+            // Find the profile name to show a better confirmation
+            const p = profiles.find(x => x.id === profileId);
+            const name = p ? p.name : "this profile";
+
+            if(!confirm(`Are you sure you want to delete "${name}"? This will permanently erase all associated data.`)) return;
+            
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_users', profileId));
+            
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'tdee_entries');
+            const snapshot = await getDocs(q);
+            const toDelete = snapshot.docs.filter(d => d.data().profileId === profileId);
+            
+            await Promise.all(toDelete.map(d => deleteDoc(d.ref)));
+
+            await loadProfiles();
+            if (isSelfDelete) {
+                showLoginScreen();
+            } else { 
+                alert("Profile deleted."); 
+                openProfileModal('edit'); // Re-open admin modal to show updated list
+            }
+        }
+
+        async function enableSecurity(pin, isChange = false) {
+            if (pin.length < 4 || pin.length > 8) {
+                alert("PIN must be 4-8 digits.");
+                return;
+            }
+
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            if (!isChange && profile.isSecured) return; 
+
+            if (!confirm(`Confirming: This will ${isChange ? 're-encrypt' : 'encrypt'} your data. Don't lose this PIN.`)) return;
+
+            const token = CryptoJS.AES.encrypt("VERIFIED", pin).toString();
+            const updates = entries.map(entry => {
+                const w = entry.weight !== null ? CryptoJS.AES.encrypt(entry.weight.toString(), pin).toString() : null;
+                const c = entry.calories !== null ? CryptoJS.AES.encrypt(entry.calories.toString(), pin).toString() : null;
+                return { id: entry.id, weight: w, calories: c };
+            });
+
+            document.getElementById('loading-screen').classList.remove('hidden');
+            
+            try {
+                for (let up of updates) {
+                    const pay = {};
+                    if(up.weight) pay.weight = up.weight;
+                    if(up.calories) pay.calories = up.calories;
+                    if(Object.keys(pay).length > 0) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_entries', up.id), pay);
+                }
+
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tdee_users', selectedProfileId), {
+                    isSecured: true,
+                    securityCheck: token
+                });
+
+                sessionPIN = pin;
+                profile.isSecured = true;
+                profile.securityCheck = token;
+
+                document.getElementById('loading-screen').classList.add('hidden');
+                closeModal();
+                alert(isChange ? "PIN Changed Successfully" : "Profile Encrypted Successfully.");
+                await loadEntries(selectedProfileId);
+
+            } catch(e) {
+                console.error(e);
+                alert("Error during encryption.");
+                document.getElementById('loading-screen').classList.add('hidden');
+            }
+        }
+
         function calculateStats() {
             const profile = profiles.find(p => p.id === selectedProfileId);
             if (!profile) return; 
+
+            const displayWeight = entries.length > 0 && entries[entries.length-1].weight ? entries[entries.length-1].weight : 0;
+            renderDashboard(profile, entries.length > 0 ? entries[entries.length-1] : null, displayWeight, profile.calorieTarget);
 
             if (entries.length === 0) {
                 renderCharts([], profile);
                 renderHistory([], profile);
                 updateGoalPredictions(0, 0, profile);
+                renderAnalysis(profile, 0, 0); // Reset analysis
                 return;
             }
 
             const factor = profile.unit === 'lbs' ? KCAL_PER_LB : KCAL_PER_KG;
-            
-            // Initialize trend weight with the first available weight
             let trendWeight = 0;
             const firstWeightEntry = entries.find(e => e.weight !== undefined && e.weight !== null);
-            if (firstWeightEntry) {
-                trendWeight = firstWeightEntry.weight;
-            }
+            if (firstWeightEntry) trendWeight = firstWeightEntry.weight;
 
             const smoothingFactor = 0.1;
-
             const processedData = entries.map((entry, index) => {
-                // If entry has no weight, we just hold the previous trendWeight
                 if (entry.weight !== undefined && entry.weight !== null) {
-                     // If it's the very first entry with weight, we initialized trendWeight above.
-                     // But we still need to run the EMA formula for subsequent entries
                      trendWeight = (entry.weight * smoothingFactor) + (trendWeight * (1 - smoothingFactor));
                 }
                 return { ...entry, trendWeight };
@@ -274,14 +501,9 @@
             const tdeeWindow = 14; 
             const finalData = processedData.map((entry, index) => {
                 if (index === 0) return { ...entry, calculatedTDEE: null };
-                
                 const prevEntry = processedData[index - 1];
                 const dayDiff = (new Date(entry.date) - new Date(prevEntry.date)) / (1000 * 60 * 60 * 24);
                 
-                // REQUIREMENTS FOR TDEE:
-                // 1. Current entry must have calories
-                // 2. Trend weight must be valid (non-zero)
-                // 3. Previous trend weight must be valid
                 if (!entry.calories || trendWeight === 0 || prevEntry.trendWeight === 0 || dayDiff <= 0) {
                     return { ...entry, rawTDEE: null };
                 }
@@ -294,10 +516,8 @@
 
             const finalSmoothedData = finalData.map((entry, index) => {
                 if (entry.rawTDEE === null || entry.rawTDEE === undefined) return { ...entry, tdee: null };
-                let sum = 0;
-                let count = 0;
+                let sum = 0; let count = 0;
                 for (let i = 0; i < tdeeWindow; i++) {
-                    // Look back N days
                     if (index - i >= 0 && finalData[index-i].rawTDEE) {
                         sum += finalData[index-i].rawTDEE;
                         count++;
@@ -307,10 +527,8 @@
                 return { ...entry, tdee: avgTDEE };
             });
 
-            // Find last valid TDEE entry for dashboard
             let lastValidTDEE = null;
             let lastValidWeight = null;
-            
             for(let i = finalSmoothedData.length - 1; i >= 0; i--) {
                 if (finalSmoothedData[i].tdee !== null && lastValidTDEE === null) lastValidTDEE = finalSmoothedData[i].tdee;
                 if (finalSmoothedData[i].weight && lastValidWeight === null) lastValidWeight = finalSmoothedData[i].weight;
@@ -318,37 +536,183 @@
             
             const currentTDEE = lastValidTDEE || profile.calorieTarget;
             const currentWeight = lastValidWeight || 0;
-            const lastEntry = finalSmoothedData[finalSmoothedData.length - 1]; // For display calories
+            const lastEntry = finalSmoothedData[finalSmoothedData.length - 1];
 
             renderDashboard(profile, lastEntry, currentWeight, currentTDEE);
             renderCharts(finalSmoothedData, profile);
             renderHistory(finalSmoothedData, profile);
             updateGoalPredictions(currentTDEE, currentWeight, profile);
+            renderAnalysis(profile, currentWeight, currentTDEE);
         }
 
         // --- UI Rendering ---
 
-        function renderProfileSelector() {
-            const select = document.getElementById('profile-select');
-            select.innerHTML = '';
+        function renderAnalysis(profile, currentWeight, currentTDEE) {
+            const container = document.getElementById('analysis-content');
+            if (!currentWeight || !currentTDEE || !profile.goalWeight) {
+                container.innerHTML = '<p class="text-sm text-theme-muted text-center py-4">Log more data to unlock advanced analysis.</p>';
+                return;
+            }
+
+            const goal = profile.goalWeight;
+            const diff = currentWeight - goal; // + means lose, - means gain
+            const isLoss = diff > 0;
+            const factor = profile.unit === 'lbs' ? 3500 : 7700;
+            const totalCalsNeeded = Math.abs(diff) * factor;
+
+            let scenarios = [];
+
+            if (isLoss) {
+                // 1. Relaxed (250 kcal)
+                const def1 = 250;
+                const cals1 = currentTDEE - def1;
+                const days1 = totalCalsNeeded / def1;
+
+                // 2. Moderate (500 kcal or 15%)
+                const def2 = Math.min(500, currentTDEE * 0.15); 
+                const cals2 = currentTDEE - def2;
+                const days2 = totalCalsNeeded / def2;
+
+                // 3. Aggressive (25% or 1000 max)
+                const def3 = Math.min(1000, currentTDEE * 0.25);
+                const cals3 = currentTDEE - def3;
+                const days3 = totalCalsNeeded / def3;
+
+                scenarios = [
+                    { title: "Relaxed", cals: cals1, days: days1, diff: "Easy", color: "text-emerald-500", desc: "Sustainable, minimal effort." },
+                    { title: "Moderate", cals: cals2, days: days2, diff: "Medium", color: "text-amber-500", desc: "Balanced approach." },
+                    { title: "Aggressive", cals: cals3, days: days3, diff: "Hard", color: "text-red-500", desc: "Fast but requires high discipline." }
+                ];
+            } else {
+                // Gain Logic
+                const sur1 = 250; 
+                const cals1 = currentTDEE + sur1;
+                const days1 = totalCalsNeeded / sur1;
+
+                const sur2 = 500;
+                const cals2 = currentTDEE + sur2;
+                const days2 = totalCalsNeeded / sur2;
+
+                scenarios = [
+                    { title: "Lean Gain", cals: cals1, days: days1, diff: "Easy", color: "text-emerald-500", desc: "Minimizes fat gain." },
+                    { title: "Standard", cals: cals2, days: days2, diff: "Medium", color: "text-amber-500", desc: "Faster growth." }
+                ];
+            }
+
+            let html = '';
+            scenarios.forEach(s => {
+                const date = new Date();
+                date.setDate(date.getDate() + s.days);
+                const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' });
+                const weeks = Math.round(s.days / 7);
+
+                html += `
+                <div class="theme-soft p-3 rounded-xl mb-3 border border-theme-primary" style="border-color: var(--border-color)">
+                    <div class="flex justify-between items-start mb-1">
+                        <div>
+                            <span class="font-bold text-theme-main text-sm">${s.title}</span>
+                            <span class="text-xs ${s.color} font-bold ml-2 border border-current px-1 rounded">${s.diff}</span>
+                        </div>
+                        <span class="font-bold text-theme-primary">${Math.round(s.cals)} kcal</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <div class="text-xs text-theme-muted max-w-[70%] leading-tight">${s.desc}</div>
+                        <div class="text-right">
+                            <div class="text-xs text-theme-main font-bold">${dateStr}</div>
+                            <div class="text-[10px] text-theme-muted">${weeks} weeks</div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        window.toggleAnalysis = () => {
+            const content = document.getElementById('analysis-content');
+            const icon = document.getElementById('analysis-chevron');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        function showLoginScreen() {
+            const container = document.getElementById('login-screen');
+            const list = document.getElementById('profile-list');
+            list.innerHTML = '';
             
             if (profiles.length === 0) {
-                 const opt = document.createElement('option');
-                 opt.text = "Create a Profile ->";
-                 select.appendChild(opt);
-                 return;
+                list.innerHTML = '<p class="text-center text-theme-muted italic">No profiles found. Create one below!</p>';
             }
 
             profiles.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.text = p.name;
-                select.appendChild(opt);
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-2";
+                div.innerHTML = `
+                    <button onclick="attemptLogin('${p.id}')" class="w-full theme-card p-4 rounded-xl text-left transition-all flex items-center justify-between group shadow-sm hover:opacity-80">
+                        <span class="font-bold text-lg text-theme-main">${p.name}</span>
+                        ${p.isSecured ? '<i class="fas fa-lock text-theme-muted opacity-50"></i>' : '<i class="fas fa-chevron-right text-theme-muted opacity-50 group-hover:translate-x-1 transition-transform"></i>'}
+                    </button>
+                `;
+                list.appendChild(div);
             });
-            if (selectedProfileId) select.value = selectedProfileId;
+
+            document.getElementById('app-content').classList.add('hidden');
+            container.classList.remove('hidden');
+        }
+
+        window.attemptLogin = async (id) => {
+            selectedProfileId = id;
+            const profile = profiles.find(p => p.id === id);
+            applyTheme(profile.theme);
+            
+            if (profile.isSecured) {
+                document.getElementById('pin-modal').classList.remove('hidden');
+                document.getElementById('pin-input').value = '';
+                document.getElementById('pin-input').focus();
+            } else {
+                sessionPIN = null; 
+                enterApp();
+            }
+        };
+
+        window.verifyPin = () => {
+            const pin = document.getElementById('pin-input').value;
+            const profile = profiles.find(p => p.id === selectedProfileId);
+            
+            try {
+                const bytes = CryptoJS.AES.decrypt(profile.securityCheck, pin);
+                const check = bytes.toString(CryptoJS.enc.Utf8);
+                
+                if (check === "VERIFIED") {
+                    sessionPIN = pin;
+                    document.getElementById('pin-modal').classList.add('hidden');
+                    enterApp();
+                } else {
+                    document.getElementById('pin-error').classList.remove('hidden');
+                }
+            } catch (e) {
+                document.getElementById('pin-error').classList.remove('hidden');
+            }
+        };
+
+        function enterApp() {
+            localStorage.setItem('tdee_last_profile', selectedProfileId);
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            loadEntries(selectedProfileId);
+        }
+
+        function applyTheme(theme) {
+            document.body.setAttribute('data-theme', theme || 'ocean');
         }
 
         function renderDashboard(profile, lastEntry, currentWeight, currentTDEE) {
+            document.getElementById('profile-name-display').textContent = profile.name;
             document.getElementById('display-tdee').textContent = Math.round(currentTDEE);
             document.getElementById('display-weight').textContent = currentWeight ? currentWeight.toFixed(1) + ' ' + profile.unit : '--';
             document.getElementById('display-calories').textContent = (lastEntry && lastEntry.calories) ? lastEntry.calories : '--';
@@ -358,7 +722,6 @@
             const targetCals = parseFloat(document.getElementById('setting-calories').value) || profile.calorieTarget;
             const goalWeight = parseFloat(document.getElementById('setting-goal').value) || profile.goalWeight;
             
-            // If we don't have a weight yet, can't predict
             if (!currentWeight || currentWeight === 0) {
                  document.getElementById('goal-status').textContent = "Need weight data";
                  return;
@@ -376,17 +739,19 @@
             const weeklyChange = (deficit * 7) / factor;
             const direction = weeklyChange > 0 ? "Lose" : "Gain";
             elWeekly.textContent = `${direction} ${Math.abs(weeklyChange).toFixed(2)} ${profile.unit} / week`;
-            elWeekly.className = `font-medium ${weeklyChange > 0 ? 'text-green-600' : 'text-amber-600'}`;
+            
+            // Adjust colors for readability on theme
+            const colorGood = "text-theme-primary";
+            const colorBad = "text-theme-muted";
+            elWeekly.className = `font-medium ${weeklyChange > 0 ? colorGood : colorBad}`;
 
             if ((weightDiff > 0 && deficit <= 0) || (weightDiff < 0 && deficit >= 0)) {
-                 elStatus.textContent = "Current target won't reach goal weight.";
-                 elDays.textContent = "∞";
-                 elDate.textContent = "--";
+                 elStatus.textContent = "Target won't reach goal.";
+                 elDays.textContent = "∞"; elDate.textContent = "--";
                  return;
             }
 
-            const totalDeficitNeeded = Math.abs(weightDiff) * factor;
-            const days = Math.abs(totalDeficitNeeded / deficit);
+            const days = Math.abs((Math.abs(weightDiff) * factor) / deficit);
             
             if (!isFinite(days)) {
                 elDays.textContent = "--"; elDate.textContent = "--";
@@ -407,72 +772,45 @@
                 const date = new Date(d.date);
                 return `${date.getMonth()+1}/${date.getDate()}`;
             });
-            // Handle missing data for charts (Chart.js handles nulls by breaking the line, which is good)
             const weights = data.map(d => d.weight || null);
             const trends = data.map(d => d.trendWeight > 0 ? d.trendWeight : null);
             const tdees = data.map(d => d.tdee);
 
-            // Weight Chart
+            const styles = getComputedStyle(document.body);
+            const colorPrimary = styles.getPropertyValue('--color-primary').trim();
+            const colorBorder = styles.getPropertyValue('--border-color').trim();
+            const textMuted = styles.getPropertyValue('--text-muted').trim();
+
             if (weightChartInstance) weightChartInstance.destroy();
             weightChartInstance = new Chart(ctxWeight, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [
-                        {
-                            label: 'Daily',
-                            data: weights,
-                            borderColor: '#cbd5e1',
-                            borderWidth: 1,
-                            pointRadius: 3,
-                            spanGaps: true, // Connect lines over missing days
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Trend',
-                            data: trends,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            borderWidth: 3,
-                            pointRadius: 0,
-                            fill: true,
-                            tension: 0.4,
-                            spanGaps: true
-                        }
+                        { label: 'Daily', data: weights, borderColor: colorBorder, borderWidth: 1, pointRadius: 3, spanGaps: true, tension: 0.1 },
+                        { label: 'Trend', data: trends, borderColor: colorPrimary, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 3, pointRadius: 0, fill: true, tension: 0.4, spanGaps: true }
                     ]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: { y: { title: { display: true, text: profile ? profile.unit : '' } } },
-                    plugins: { legend: { display: true, labels: { boxWidth: 10 } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { y: { title: { display: true, text: profile ? profile.unit : '' }, grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { color: textMuted } }, x: { grid: { display: false }, ticks: { color: textMuted } } }, 
+                    plugins: { legend: { labels: { color: textMuted } } } 
                 }
             });
 
-            // TDEE Chart
             if (tdeeChartInstance) tdeeChartInstance.destroy();
             tdeeChartInstance = new Chart(ctxTdee, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: 'TDEE',
-                        data: tdees,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                        borderWidth: 2,
-                        pointRadius: 1,
-                        fill: true,
-                        tension: 0.4,
-                        spanGaps: true
-                    }]
+                    datasets: [{ label: 'TDEE', data: tdees, borderColor: colorPrimary, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 2, pointRadius: 1, fill: true, tension: 0.4, spanGaps: true }]
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: false } },
-                    plugins: { legend: { display: false } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { y: { beginAtZero: false, grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { color: textMuted } }, x: { grid: { display: false }, ticks: { color: textMuted } } }, 
+                    plugins: { legend: { display: false } } 
                 }
             });
         }
@@ -483,30 +821,24 @@
             
             [...data].reverse().forEach(entry => {
                 const tr = document.createElement('tr');
-                tr.className = "border-b border-gray-100 hover:bg-gray-50 transition-colors";
-                
-                if (editingEntryId === entry.id) {
-                    tr.className = "bg-amber-50 border-amber-200 border-b";
-                }
+                tr.className = "border-b border-theme-primary transition-colors";
+                tr.style.borderColor = "var(--border-color)";
+                if (editingEntryId === entry.id) tr.classList.add("bg-theme-primary", "bg-opacity-10");
 
-                const displayWeight = entry.weight ? entry.weight : '<span class="text-gray-300">-</span>';
-                const displayTrend = entry.trendWeight > 0 ? entry.trendWeight.toFixed(1) : '<span class="text-gray-300">-</span>';
-                const displayCals = entry.calories ? entry.calories : '<span class="text-gray-300">-</span>';
-                const displayTDEE = entry.tdee ? Math.round(entry.tdee) : '<span class="text-gray-300">-</span>';
+                const displayWeight = entry.weight ? entry.weight : '<span class="text-theme-muted opacity-50">-</span>';
+                const displayTrend = entry.trendWeight > 0 ? entry.trendWeight.toFixed(1) : '<span class="text-theme-muted opacity-50">-</span>';
+                const displayCals = entry.calories ? entry.calories : '<span class="text-theme-muted opacity-50">-</span>';
+                const displayTDEE = entry.tdee ? Math.round(entry.tdee) : '<span class="text-theme-muted opacity-50">-</span>';
 
                 tr.innerHTML = `
-                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${entry.date.slice(5)}</td>
-                    <td class="py-3 px-3 text-sm font-medium whitespace-nowrap">${displayWeight}</td>
-                    <td class="py-3 px-3 text-sm text-gray-400 whitespace-nowrap">${displayTrend}</td>
-                    <td class="py-3 px-3 text-sm text-gray-600 whitespace-nowrap">${displayCals}</td>
-                    <td class="py-3 px-3 text-sm font-semibold text-emerald-600 whitespace-nowrap">${displayTDEE}</td>
+                    <td class="py-3 px-3 text-sm text-theme-muted whitespace-nowrap">${entry.date.slice(5)}</td>
+                    <td class="py-3 px-3 text-sm text-theme-main font-medium whitespace-nowrap">${displayWeight}</td>
+                    <td class="py-3 px-3 text-sm text-theme-muted whitespace-nowrap">${displayTrend}</td>
+                    <td class="py-3 px-3 text-sm text-theme-muted whitespace-nowrap">${displayCals}</td>
+                    <td class="py-3 px-3 text-sm font-bold text-theme-primary whitespace-nowrap">${displayTDEE}</td>
                     <td class="py-3 px-3 text-right whitespace-nowrap">
-                        <button onclick="window.handleEditEntry('${entry.id}', '${entry.date}', '${entry.weight || ''}', '${entry.calories || ''}')" class="text-blue-400 hover:text-blue-600 p-2 mr-1">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                        <button onclick="window.deleteEntryWrapper('${entry.id}')" class="text-red-300 hover:text-red-500 p-2">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button onclick="window.handleEditEntry('${entry.id}', '${entry.date}', '${entry.weight || ''}', '${entry.calories || ''}')" class="text-theme-primary hover:opacity-70 p-2 mr-1"><i class="fas fa-pencil-alt"></i></button>
+                        <button onclick="window.deleteEntryWrapper('${entry.id}')" class="text-theme-muted hover:text-red-500 p-2"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -515,45 +847,73 @@
 
         // --- User Actions ---
 
-        window.selectProfile = async (id) => {
-            if (!id) return;
-            selectedProfileId = id;
-            document.getElementById('profile-select').value = id;
-            
-            const profile = profiles.find(p => p.id === id);
-            if (profile) {
-                document.getElementById('setting-goal').value = profile.goalWeight;
-                document.getElementById('setting-calories').value = profile.calorieTarget;
-                document.getElementById('unit-label').textContent = profile.unit;
-                await loadEntries(id);
-            }
-        };
-
         window.openProfileModal = (mode) => {
             const modal = document.getElementById('modal-profile');
             const title = document.getElementById('modal-title');
             const btn = document.getElementById('modal-submit-btn');
-            
+            const pinSection = document.getElementById('pin-setup-section');
+            const changePinSection = document.getElementById('pin-change-section');
+            const deleteSection = document.getElementById('delete-profile-section');
+            const adminSection = document.getElementById('admin-section');
+            const adminList = document.getElementById('admin-profile-list');
+
             document.getElementById('profile-id-hidden').value = mode === 'edit' ? selectedProfileId : '';
-            
+            const profile = profiles.find(p => p.id === selectedProfileId);
+
+            document.getElementById('setup-pin').value = '';
+            document.getElementById('change-pin-input').value = '';
+
             if (mode === 'edit') {
-                const profile = profiles.find(p => p.id === selectedProfileId);
-                if (!profile) return alert("No profile selected");
-                
                 title.textContent = "Edit Profile";
                 btn.textContent = "Save Changes";
                 document.getElementById('new-name').value = profile.name;
                 document.getElementById('new-unit').value = profile.unit;
                 document.getElementById('new-goal').value = profile.goalWeight;
                 document.getElementById('new-cals').value = profile.calorieTarget;
+                document.getElementById('new-theme').value = profile.theme || 'ocean';
+                
+                if(!profile.isSecured) {
+                    pinSection.classList.remove('hidden');
+                    changePinSection.classList.add('hidden');
+                } else {
+                    pinSection.classList.add('hidden');
+                    changePinSection.classList.remove('hidden');
+                }
+
+                if (profile.name === ADMIN_NAME) {
+                    deleteSection.classList.add('hidden');
+                    adminSection.classList.remove('hidden');
+                    adminList.innerHTML = '';
+                    profiles.forEach(p => {
+                        if (p.name !== ADMIN_NAME) {
+                            const li = document.createElement('div');
+                            li.className = "flex justify-between items-center theme-soft p-2 rounded mb-2 border border-theme-primary";
+                            li.style.borderColor = "var(--border-color)";
+                            li.innerHTML = `
+                                <span class="text-sm font-bold text-theme-main">${p.name}</span>
+                                <button type="button" onclick="deleteProfile('${p.id}', false)" class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">Delete</button>
+                            `;
+                            adminList.appendChild(li);
+                        }
+                    });
+                    if (adminList.innerHTML === '') adminList.innerHTML = '<p class="text-xs text-theme-muted italic">No other profiles.</p>';
+                } else {
+                    deleteSection.classList.remove('hidden');
+                    adminSection.classList.add('hidden');
+                }
+
             } else {
                 title.textContent = "New Profile";
                 btn.textContent = "Create Profile";
                 document.getElementById('new-name').value = "";
                 document.getElementById('new-goal').value = "";
                 document.getElementById('new-cals').value = "2000";
+                document.getElementById('new-theme').value = 'light';
+                pinSection.classList.add('hidden');
+                changePinSection.classList.add('hidden');
+                deleteSection.classList.add('hidden');
+                adminSection.classList.add('hidden');
             }
-            
             modal.classList.remove('hidden');
         };
 
@@ -564,11 +924,24 @@
             const unit = document.getElementById('new-unit').value;
             const goal = document.getElementById('new-goal').value;
             const cals = document.getElementById('new-cals').value;
+            const theme = document.getElementById('new-theme').value;
             
             if(name) {
-                await saveProfile(id, name, unit, goal, cals);
+                await saveProfile(id, name, unit, goal, cals, theme);
                 document.getElementById('modal-profile').classList.add('hidden');
             }
+        };
+
+        window.handleEnableSecurity = () => {
+            const pin = document.getElementById('setup-pin').value;
+            if(!pin) return alert("Please enter a PIN");
+            enableSecurity(pin, false);
+        };
+
+        window.handleChangePin = () => {
+            const pin = document.getElementById('change-pin-input').value;
+            if(!pin) return alert("Please enter new PIN");
+            enableSecurity(pin, true);
         };
 
         window.handleAddEntry = async (e) => {
@@ -576,31 +949,20 @@
             const date = document.getElementById('entry-date').value;
             const weight = document.getElementById('entry-weight').value;
             const cals = document.getElementById('entry-cals').value;
-            
-            // Allow partial: must have date, plus at least one other field
-            if(date && (weight || cals)) {
-                await saveEntry(date, weight, cals);
-            } else {
-                alert("Please enter a Date and at least one value (Weight or Calories).");
-            }
+            if(date && (weight || cals)) await saveEntry(date, weight, cals);
+            else alert("Enter Date and at least one value.");
         };
 
         window.handleEditEntry = (id, date, weight, cals) => {
             editingEntryId = id;
-            
-            // Populate form
             document.getElementById('entry-date').value = date;
             document.getElementById('entry-weight').value = weight;
             document.getElementById('entry-cals').value = cals;
             
-            // Change UI state
             const btn = document.getElementById('btn-add-entry');
-            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Update Entry';
-            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-100');
-            btn.classList.add('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-100');
-            
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i> Update';
+            btn.classList.add('bg-amber-500', 'text-white');
             document.getElementById('btn-cancel-edit').classList.remove('hidden');
-            
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
             const profile = profiles.find(p => p.id === selectedProfileId);
@@ -611,46 +973,30 @@
             editingEntryId = null;
             document.getElementById('entry-weight').value = '';
             document.getElementById('entry-cals').value = '';
-            // Keep date as is for convenience
-            
-            // Reset UI
             const btn = document.getElementById('btn-add-entry');
             btn.innerHTML = '<i class="fas fa-plus mr-1"></i> Add / Update';
-            btn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'shadow-blue-100');
-            btn.classList.remove('bg-amber-500', 'hover:bg-amber-600', 'shadow-amber-100');
-            
+            btn.classList.remove('bg-amber-500');
             document.getElementById('btn-cancel-edit').classList.add('hidden');
-            
             const profile = profiles.find(p => p.id === selectedProfileId);
             renderHistory(entries, profile);
         };
 
-        window.deleteEntryWrapper = async (id) => {
-            if(confirm('Delete this entry?')) {
-                await deleteEntry(id);
-            }
-        };
+        window.deleteEntryWrapper = async (id) => { if(confirm('Delete this entry?')) await deleteEntry(id); };
+        window.closeModal = () => document.getElementById('modal-profile').classList.add('hidden');
+        window.logout = () => { showLoginScreen(); };
+        window.deleteCurrentProfile = () => deleteProfile(selectedProfileId, true);
+        window.deleteProfile = deleteProfile; // Expose to window
 
-        window.closeModal = () => {
-             document.getElementById('modal-profile').classList.add('hidden');
-        };
-
-        // Real-time calculation for Goal Predictor
-        const updateSettings = async () => {
-             if(!selectedProfileId || entries.length === 0) return;
-             calculateStats(); 
-        }
-        
+        const updateSettings = async () => { if(!selectedProfileId || entries.length === 0) return; calculateStats(); }
         document.getElementById('setting-goal').addEventListener('input', updateSettings);
         document.getElementById('setting-calories').addEventListener('input', updateSettings);
 
         // --- Start ---
         document.getElementById('entry-date').valueAsDate = new Date();
         initApp();
-
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+<body class="font-sans min-h-screen transition-colors duration-300">
 
     <!-- Loading Screen -->
     <div id="loading-screen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
@@ -660,39 +1006,67 @@
         </div>
     </div>
 
+    <!-- Login / Profile Selection Screen -->
+    <div id="login-screen" class="hidden min-h-screen flex flex-col items-center justify-center p-4 max-w-md mx-auto">
+        <div class="theme-card w-full rounded-2xl shadow-xl p-6">
+            <h2 class="text-2xl font-bold text-theme-main mb-2 text-center">Who is tracking?</h2>
+            <p class="text-theme-muted text-center mb-6 text-sm">Select your profile to continue</p>
+            
+            <div id="profile-list" class="space-y-3 mb-6">
+                <!-- Profiles injected here -->
+            </div>
+
+            <button onclick="openProfileModal('new')" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-theme-muted hover:border-theme-primary hover:text-theme-primary transition-colors font-medium">
+                + Create New Profile
+            </button>
+        </div>
+    </div>
+
+    <!-- PIN Entry Modal -->
+    <div id="pin-modal" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="theme-card rounded-2xl shadow-2xl p-8 w-full max-w-xs text-center">
+            <div class="w-16 h-16 theme-soft rounded-full flex items-center justify-center mx-auto mb-4 text-2xl text-theme-primary">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h3 class="text-xl font-bold text-theme-main mb-2">Locked Profile</h3>
+            <p class="text-sm text-theme-muted mb-6">Enter your PIN to decrypt your data</p>
+            
+            <input type="password" id="pin-input" maxlength="8" class="theme-input w-full text-center text-3xl tracking-widest font-bold border-b-2 focus:border-theme-primary focus:outline-none py-2 mb-4 bg-transparent" placeholder="••••">
+            <p id="pin-error" class="hidden text-red-500 text-xs font-bold mb-4">Incorrect PIN</p>
+
+            <button onclick="verifyPin()" class="w-full bg-theme-primary text-white font-bold py-3 rounded-xl hover:opacity-90 transition-colors">Unlock</button>
+            <button onclick="location.reload()" class="mt-4 text-theme-muted text-sm hover:text-theme-main">Cancel</button>
+        </div>
+    </div>
+
     <!-- App Content -->
     <div id="app-content" class="hidden container mx-auto px-3 py-4 md:px-4 md:py-6 max-w-6xl">
         
         <!-- Header -->
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <div class="flex items-center gap-3 self-start md:self-center">
-                <div class="bg-blue-600 text-white p-3 rounded-xl shadow-lg shadow-blue-200">
+                <div class="bg-theme-primary text-white p-3 rounded-xl shadow-lg shadow-black/10 transition-colors">
                     <i class="fas fa-fire-alt text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-bold text-slate-900 leading-tight">Adaptive TDEE</h1>
-                    <p class="text-xs md:text-sm text-slate-500">Calorie & Weight Sync</p>
+                    <h1 class="text-xl md:text-2xl font-bold text-theme-header leading-tight">Adaptive TDEE</h1>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs md:text-sm text-theme-header opacity-80">Tracking as <strong id="profile-name-display">User</strong></span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Profile Controls -->
+            <!-- Controls -->
             <div class="flex items-center gap-2 w-full md:w-auto">
-                <div class="flex-grow flex items-center bg-white p-1 rounded-lg shadow-sm border border-slate-200">
-                    <span class="text-slate-400 pl-2 pr-1"><i class="fas fa-user"></i></span>
-                    <select id="profile-select" onchange="selectProfile(this.value)" class="bg-transparent text-slate-700 font-medium py-2 px-1 focus:outline-none cursor-pointer w-full text-base">
-                        <option>Loading...</option>
-                    </select>
-                </div>
-                
-                <button onclick="openProfileModal('edit')" class="bg-white text-slate-600 hover:text-blue-600 p-3 rounded-lg shadow-sm border border-slate-200 transition-colors" title="Edit Profile Settings">
-                    <i class="fas fa-cog"></i>
+                <button onclick="openProfileModal('edit')" class="flex-grow md:flex-none bg-white bg-opacity-90 p-3 rounded-lg shadow-sm font-medium text-sm flex items-center justify-center gap-2 transition-colors hover:bg-opacity-100 text-slate-700">
+                    <i class="fas fa-cog"></i> <span>Settings</span>
                 </button>
                 
-                <button onclick="openProfileModal('new')" class="bg-blue-600 text-white hover:bg-blue-700 p-3 rounded-lg shadow-lg shadow-blue-100 transition-colors" title="Create New Profile">
-                    <i class="fas fa-plus"></i>
+                <button onclick="logout()" class="bg-white bg-opacity-90 p-3 rounded-lg shadow-sm transition-colors hover:bg-opacity-100 text-slate-700" title="Switch User">
+                    <i class="fas fa-sign-out-alt"></i>
                 </button>
                 
-                <span id="loading-indicator" class="opacity-0 transition-opacity text-blue-500 text-xs absolute top-2 right-2 md:static">
+                <span id="loading-indicator" class="opacity-0 transition-opacity text-white text-xs absolute top-2 right-2 md:static">
                     <i class="fas fa-sync fa-spin"></i>
                 </span>
             </div>
@@ -701,42 +1075,42 @@
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
             <!-- TDEE Card -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-none min-h-[140px]">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
-                <p class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Estimated TDEE</p>
+            <div class="theme-card p-5 rounded-2xl shadow-sm flex flex-col items-center justify-center relative overflow-hidden order-1 md:order-none min-h-[140px]">
+                <div class="absolute top-0 left-0 w-full h-1 bg-theme-primary"></div>
+                <p class="text-theme-muted text-xs font-bold uppercase tracking-wider mb-1">Estimated TDEE</p>
                 <div class="flex items-baseline gap-1">
-                    <h2 id="display-tdee" class="text-4xl font-bold text-slate-800">--</h2>
-                    <span class="text-slate-400 text-sm">kcal</span>
+                    <h2 id="display-tdee" class="text-4xl font-bold text-theme-main">--</h2>
+                    <span class="text-theme-muted text-sm">kcal</span>
                 </div>
             </div>
 
             <!-- Current Stats -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 divide-x divide-slate-100 order-3 md:order-none items-center min-h-[140px]">
+            <div class="theme-card p-5 rounded-2xl shadow-sm grid grid-cols-2 divide-x divide-gray-200 order-3 md:order-none items-center min-h-[140px]" style="border-color: var(--border-color);">
                 <div class="text-center px-2">
-                    <p class="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Last Weight</p>
-                    <p id="display-weight" class="text-2xl font-bold text-slate-700">--</p>
+                    <p class="text-theme-muted text-[10px] md:text-xs font-bold uppercase mb-1">Last Weight</p>
+                    <p id="display-weight" class="text-2xl font-bold text-theme-main">--</p>
                 </div>
-                <div class="text-center px-2">
-                    <p class="text-slate-400 text-[10px] md:text-xs font-bold uppercase mb-1">Last Calories</p>
-                    <p id="display-calories" class="text-2xl font-bold text-slate-700">--</p>
+                <div class="text-center px-2" style="border-left-color: var(--border-color);">
+                    <p class="text-theme-muted text-[10px] md:text-xs font-bold uppercase mb-1">Last Calories</p>
+                    <p id="display-calories" class="text-2xl font-bold text-theme-main">--</p>
                 </div>
             </div>
 
             <!-- Entry Form -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 order-2 md:order-none flex flex-col justify-center">
+            <div class="theme-card p-5 rounded-2xl shadow-sm order-2 md:order-none flex flex-col justify-center">
                 <form onsubmit="handleAddEntry(event)" class="space-y-3">
                     <div class="flex gap-2">
-                        <input type="date" id="entry-date" required class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="date" id="entry-date" required class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
                     </div>
                     <div class="flex gap-2">
-                        <input type="number" step="0.1" id="entry-weight" placeholder="Weight" class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <input type="number" id="entry-cals" placeholder="Calories" class="w-1/2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="number" step="0.1" id="entry-weight" placeholder="Weight" class="theme-input w-1/2 rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
+                        <input type="number" id="entry-cals" placeholder="Calories" class="theme-input w-1/2 rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-medium py-3 rounded-lg text-sm transition-colors">
+                        <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden w-1/3 bg-gray-200 hover:bg-gray-300 text-slate-600 font-medium py-3 rounded-lg text-sm transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" id="btn-add-entry" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg text-base transition-colors shadow-blue-100 shadow-lg touch-manipulation">
+                        <button type="submit" id="btn-add-entry" class="flex-grow bg-theme-primary hover:opacity-90 text-white font-medium py-3 rounded-lg text-base transition-colors shadow-lg shadow-theme touch-manipulation">
                             <i class="fas fa-plus mr-1"></i> Add / Update
                         </button>
                     </div>
@@ -750,29 +1124,29 @@
             <!-- Left Column: Charts & History -->
             <div class="lg:col-span-2 space-y-6 md:space-y-8">
                 <!-- Charts -->
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wide">Weight Trend</h3>
+                <div class="theme-card p-4 md:p-6 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-theme-main mb-4 text-sm uppercase tracking-wide">Weight Trend</h3>
                     <div class="relative h-56 md:h-64 w-full">
                         <canvas id="chart-weight"></canvas>
                     </div>
                 </div>
 
-                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 class="font-bold text-slate-700 mb-4 text-sm uppercase tracking-wide">TDEE Trend</h3>
+                <div class="theme-card p-4 md:p-6 rounded-2xl shadow-sm">
+                    <h3 class="font-bold text-theme-main mb-4 text-sm uppercase tracking-wide">TDEE Trend</h3>
                     <div class="relative h-48 w-full">
                         <canvas id="chart-tdee"></canvas>
                     </div>
                 </div>
 
                 <!-- History Table -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                        <h3 class="font-bold text-slate-700 text-sm uppercase tracking-wide">Log History</h3>
-                        <span class="text-xs text-slate-400"><i class="fas fa-arrows-alt-h mr-1"></i> Swipe to view</span>
+                <div class="theme-card rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-gray-100 flex justify-between items-center theme-soft">
+                        <h3 class="font-bold text-theme-main text-sm uppercase tracking-wide">Log History</h3>
+                        <span class="text-xs text-theme-muted"><i class="fas fa-arrows-alt-h mr-1"></i> Swipe to view</span>
                     </div>
                     <div class="overflow-x-auto max-h-96 overflow-y-auto">
                         <table class="w-full text-left border-collapse min-w-[600px]">
-                            <thead class="bg-slate-50 sticky top-0 text-slate-500">
+                            <thead class="theme-soft sticky top-0 text-theme-muted">
                                 <tr>
                                     <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Date</th>
                                     <th class="py-2 px-3 text-xs font-bold uppercase whitespace-nowrap">Weight</th>
@@ -782,9 +1156,7 @@
                                     <th class="py-2 px-3"></th>
                                 </tr>
                             </thead>
-                            <tbody id="history-body">
-                                <!-- JS Populates this -->
-                            </tbody>
+                            <tbody id="history-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -793,85 +1165,152 @@
             <!-- Right Column: Goals & Settings -->
             <div class="space-y-6">
                 <!-- Goal Calculator -->
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-6 rounded-2xl shadow-lg">
+                <div class="theme-card p-6 rounded-2xl shadow-lg border-t-4 border-theme-primary">
                     <div class="flex items-center gap-2 mb-6">
-                        <div class="bg-white/10 p-2 rounded-lg">
-                            <i class="fas fa-bullseye text-blue-400"></i>
+                        <div class="bg-theme-primary bg-opacity-10 p-2 rounded-lg text-theme-primary">
+                            <i class="fas fa-bullseye"></i>
                         </div>
-                        <h3 class="font-bold text-lg">Goal Predictor</h3>
+                        <h3 class="font-bold text-lg text-theme-main">Goal Predictor</h3>
                     </div>
 
                     <div class="space-y-5 mb-6">
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Target Weight (<span id="unit-label">kg</span>)</label>
-                            <input type="number" step="0.1" id="setting-goal" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-base text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all">
+                            <label class="block text-xs font-bold text-theme-muted mb-1 uppercase">Target Weight (<span id="unit-label">kg</span>)</label>
+                            <input type="number" step="0.1" id="setting-goal" class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none transition-all">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 mb-1 uppercase">Daily Calorie Target</label>
-                            <input type="number" id="setting-calories" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-base text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all">
+                            <label class="block text-xs font-bold text-theme-muted mb-1 uppercase">Daily Calorie Target</label>
+                            <input type="number" id="setting-calories" class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none transition-all">
                         </div>
                     </div>
 
-                    <div class="bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-700/50">
+                    <div class="theme-soft rounded-xl p-4 space-y-3 border border-gray-100/10">
                         <div class="flex justify-between items-center">
-                            <span class="text-sm text-slate-400">Rate:</span>
+                            <span class="text-sm text-theme-muted">Rate:</span>
                             <span id="goal-weekly" class="font-bold text-sm">--</span>
                         </div>
                         <div class="flex justify-between items-center">
-                            <span class="text-sm text-slate-400">Time:</span>
-                            <span id="goal-days" class="font-bold text-blue-300">--</span>
+                            <span class="text-sm text-theme-muted">Time:</span>
+                            <span id="goal-days" class="font-bold text-theme-primary">--</span>
                         </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-slate-700/50">
-                            <span class="text-sm text-slate-400">Goal Date:</span>
-                            <span id="goal-date" class="font-bold text-white">--</span>
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-200/20">
+                            <span class="text-sm text-theme-muted">Goal Date:</span>
+                            <span id="goal-date" class="font-bold text-theme-main">--</span>
                         </div>
-                        <p id="goal-status" class="text-xs text-center text-slate-500 mt-2">--</p>
+                        <p id="goal-status" class="text-xs text-center text-theme-muted mt-2">--</p>
                     </div>
                 </div>
 
-                <!-- Info Box -->
-                <div class="bg-blue-50 p-6 rounded-2xl text-sm text-blue-900 border border-blue-100">
-                    <h4 class="font-bold mb-2 flex items-center gap-2">
-                        <i class="fas fa-info-circle text-blue-500"></i> How it works
-                    </h4>
-                    <p class="opacity-80 leading-relaxed">
-                        This app learns your metabolism. By tracking your weight and calories daily, it smooths out fluctuations and calculates your real TDEE.
-                    </p>
+                <!-- Analysis Section -->
+                <div class="theme-card rounded-2xl shadow-sm border-t-4 border-theme-primary mt-6 overflow-hidden">
+                    <button onclick="toggleAnalysis()" class="w-full p-4 flex justify-between items-center text-left focus:outline-none hover:bg-black/5 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-theme-primary bg-opacity-10 p-2 rounded-lg text-theme-primary">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-theme-main">Smart Analysis</h3>
+                                <p class="text-xs text-theme-muted">Scenarios & timeline variations</p>
+                            </div>
+                        </div>
+                        <i id="analysis-chevron" class="fas fa-chevron-down text-theme-muted transition-transform"></i>
+                    </button>
+                    <div id="analysis-content" class="hidden px-6 pb-6 pt-2 border-t border-gray-100/10">
+                        <!-- Content injected via JS -->
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
 
     <!-- Universal Profile Modal (Create & Edit) -->
-    <div id="modal-profile" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100">
-            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-4">Profile</h3>
+    <div id="modal-profile" class="hidden fixed inset-0 modal-backdrop flex items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div class="theme-card rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100 max-h-[90vh] overflow-y-auto">
+            <h3 id="modal-title" class="text-xl font-bold text-theme-main mb-4">Profile</h3>
             <input type="hidden" id="profile-id-hidden">
             <form onsubmit="handleSaveProfile(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Name</label>
-                    <input type="text" id="new-name" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-theme-muted uppercase mb-1">Name</label>
+                    <input type="text" id="new-name" required class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-theme-muted uppercase mb-1">Theme</label>
+                    <select id="new-theme" class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
+                        <option value="light">Classic Light (Professional)</option>
+                        <option value="sky">Sky (Blue Gradient)</option>
+                        <option value="lavender">Lavender (Purple Pastel)</option>
+                        <option value="mint">Mint (Green Pastel)</option>
+                        <option value="ocean">Ocean Depth (Bold Blue)</option>
+                        <option value="midnight">Midnight Neon (Dark)</option>
+                        <option value="sunset">Sunset (Orange/Red)</option>
+                        <option value="royal">Royal (Purple)</option>
+                        <option value="forest">Forest (Green)</option>
+                        <option value="rose">Rose (Pink)</option>
+                    </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit</label>
-                        <select id="new-unit" class="w-full border border-slate-300 bg-white rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-theme-muted uppercase mb-1">Unit</label>
+                        <select id="new-unit" class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
                             <option value="kg">kg</option>
                             <option value="lbs">lbs</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Goal Weight</label>
-                        <input type="number" step="0.1" id="new-goal" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-theme-muted uppercase mb-1">Goal Weight</label>
+                        <input type="number" step="0.1" id="new-goal" required class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Start Calorie Target</label>
-                    <input type="number" id="new-cals" value="2000" required class="w-full border border-slate-300 rounded-lg px-3 py-3 text-base focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-theme-muted uppercase mb-1">Start Calorie Target</label>
+                    <input type="number" id="new-cals" value="2000" required class="theme-input w-full rounded-lg px-3 py-3 text-base focus:ring-2 focus:border-theme-primary focus:outline-none">
                 </div>
-                <div class="flex gap-2 pt-2">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors text-sm">Cancel</button>
-                    <button type="submit" id="modal-submit-btn" class="flex-1 px-4 py-3 bg-blue-600 text-white font-bold hover:bg-blue-700 rounded-lg transition-colors text-sm shadow-lg shadow-blue-100">Save</button>
+
+                <!-- Admin Section for Mike -->
+                <div id="admin-section" class="pt-4 border-t border-gray-100 hidden">
+                    <h4 class="font-bold text-theme-main flex items-center gap-2 mb-2"><i class="fas fa-user-shield text-theme-primary"></i> Admin: Manage Profiles</h4>
+                    <div id="admin-profile-list" class="max-h-32 overflow-y-auto border border-theme-primary rounded p-2 text-sm">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Security Section: Setup PIN -->
+                <div id="pin-setup-section" class="pt-4 border-t border-gray-100 hidden">
+                    <h4 class="font-bold text-theme-main flex items-center gap-2 mb-2"><i class="fas fa-shield-alt text-theme-primary"></i> Secure Profile</h4>
+                    <div class="theme-soft p-3 rounded-lg text-xs text-theme-main mb-3 leading-relaxed">
+                        <strong>Private Cloud Mode:</strong> Setting a PIN will encrypt your weight & calories. 
+                        <br><br>
+                        <span class="text-red-500 font-bold">Warning: If you lose your PIN, your data is lost forever.</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="setup-pin" placeholder="Set 4-8 Digit PIN" class="theme-input flex-grow rounded-lg px-3 py-2 text-center tracking-widest">
+                        <button type="button" onclick="handleEnableSecurity()" class="bg-theme-primary hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-bold">Lock</button>
+                    </div>
+                </div>
+
+                <!-- Security Section: Change PIN -->
+                <div id="pin-change-section" class="pt-4 border-t border-gray-100 hidden">
+                    <h4 class="font-bold text-theme-main flex items-center gap-2 mb-2"><i class="fas fa-key text-theme-primary"></i> Change Security PIN</h4>
+                    <div class="theme-soft p-3 rounded-lg text-xs text-theme-main mb-3 leading-relaxed">
+                        Entering a new PIN will re-encrypt all your existing data with the new code.
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="change-pin-input" placeholder="New PIN" class="theme-input flex-grow rounded-lg px-3 py-2 text-center tracking-widest">
+                        <button type="button" onclick="handleChangePin()" class="bg-theme-primary hover:opacity-90 text-white px-4 py-2 rounded-lg text-sm font-bold">Update</button>
+                    </div>
+                </div>
+
+                <!-- Delete Profile Section -->
+                <div id="delete-profile-section" class="pt-2 border-t border-gray-100 hidden">
+                     <button type="button" onclick="deleteCurrentProfile()" class="w-full text-red-500 hover:text-red-700 text-sm font-bold py-2 mt-2">
+                        <i class="fas fa-trash-alt mr-1"></i> Delete This Profile
+                    </button>
+                </div>
+
+                <div class="flex gap-2 pt-2 border-t border-gray-100 mt-2">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-4 py-3 text-theme-muted font-medium hover:opacity-70 rounded-lg transition-colors text-sm">Cancel</button>
+                    <button type="submit" id="modal-submit-btn" class="flex-1 px-4 py-3 bg-theme-primary text-white font-bold hover:opacity-90 rounded-lg transition-colors text-sm shadow-lg shadow-theme">Save</button>
                 </div>
             </form>
         </div>
